@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import pool from "@/lib/db";
-import { RowDataPacket, ResultSetHeader } from "mysql2";
+
 import { sha256 } from "@/lib/hash";
 import { getClientIp } from "@/lib/seo";
 import { checkHoneypot, checkRateLimit, verifyCaptcha, logSpam } from "@/lib/spam";
@@ -15,10 +15,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "postId is required" }, { status: 400 });
     }
 
-    const [comments] = await pool.query<RowDataPacket[]>(
+    const { rows: comments } = await pool.query(
       `SELECT id, post_id, nickname, content, created_at
        FROM comments
-       WHERE post_id = ? AND is_approved = 1
+       WHERE post_id = $1 AND is_approved = true
        ORDER BY created_at ASC`,
       [postId]
     );
@@ -83,24 +83,25 @@ export async function POST(request: NextRequest) {
     }
 
     // 글 존재 확인
-    const [[post]] = await pool.query<RowDataPacket[]>(
-      "SELECT id FROM posts WHERE id = ?",
+    const { rows: postRows } = await pool.query(
+      "SELECT id FROM posts WHERE id = $1",
       [postId]
     );
-    if (!post) {
+    if (!postRows[0]) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
     const ipHash = sha256(ip);
 
-    const [result] = await pool.query<ResultSetHeader>(
+    const { rows: inserted } = await pool.query(
       `INSERT INTO comments (post_id, nickname, password, content, ip_hash, is_approved)
-       VALUES (?, ?, ?, ?, ?, 1)`,
+       VALUES ($1, $2, $3, $4, $5, true)
+       RETURNING id`,
       [postId, nickname, passwordHash, content, ipHash]
     );
 
-    return NextResponse.json({ id: result.insertId, success: true }, { status: 201 });
+    return NextResponse.json({ id: inserted[0].id, success: true }, { status: 201 });
   } catch (error) {
     console.error("POST /api/comments error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -1,5 +1,5 @@
 import pool from "@/lib/db";
-import { RowDataPacket, ResultSetHeader } from "mysql2";
+
 
 const RATE_LIMIT = Number(process.env.COMMENT_RATE_LIMIT) || 3;
 const RATE_WINDOW = Number(process.env.RATE_LIMIT_WINDOW) || 60; // 초
@@ -16,7 +16,7 @@ export async function logSpam(
 ): Promise<void> {
   try {
     await pool.query(
-      "INSERT INTO spam_logs (ip_address, trigger_type, request_data) VALUES (?, ?, ?)",
+      "INSERT INTO spam_logs (ip_address, trigger_type, request_data) VALUES ($1, $2, $3)",
       [ipAddress, triggerType, requestData || null]
     );
   } catch {
@@ -30,10 +30,11 @@ export async function checkRateLimit(
 ): Promise<{ limited: boolean; requireCaptcha: boolean }> {
   try {
     // 현재 윈도우 내 hit 확인
-    const [[row]] = await pool.query<RowDataPacket[]>(
-      `SELECT hit_count, window_start FROM rate_limits WHERE ip_address = ? AND endpoint = ?`,
+    const { rows } = await pool.query(
+      `SELECT hit_count, window_start FROM rate_limits WHERE ip_address = $1 AND endpoint = $2`,
       [ipAddress, endpoint]
     );
+    const row = rows[0];
 
     const now = new Date();
 
@@ -42,29 +43,25 @@ export async function checkRateLimit(
       const diffSeconds = (now.getTime() - windowStart.getTime()) / 1000;
 
       if (diffSeconds > RATE_WINDOW) {
-        // 윈도우 만료 → 카운터 초기화
         await pool.query(
-          `UPDATE rate_limits SET hit_count = 1, window_start = NOW() WHERE ip_address = ? AND endpoint = ?`,
+          `UPDATE rate_limits SET hit_count = 1, window_start = NOW() WHERE ip_address = $1 AND endpoint = $2`,
           [ipAddress, endpoint]
         );
         return { limited: false, requireCaptcha: false };
       }
 
-      // 윈도우 내 hit_count 확인
       if (row.hit_count >= RATE_LIMIT) {
         await logSpam(ipAddress, "rate_limit");
         return { limited: true, requireCaptcha: true };
       }
 
-      // 카운터 증가
       await pool.query(
-        `UPDATE rate_limits SET hit_count = hit_count + 1 WHERE ip_address = ? AND endpoint = ?`,
+        `UPDATE rate_limits SET hit_count = hit_count + 1 WHERE ip_address = $1 AND endpoint = $2`,
         [ipAddress, endpoint]
       );
     } else {
-      // 첫 요청 - 신규 레코드 삽입
-      await pool.query<ResultSetHeader>(
-        `INSERT INTO rate_limits (ip_address, endpoint, hit_count, window_start) VALUES (?, ?, 1, NOW())`,
+      await pool.query(
+        `INSERT INTO rate_limits (ip_address, endpoint, hit_count, window_start) VALUES ($1, $2, 1, NOW())`,
         [ipAddress, endpoint]
       );
     }

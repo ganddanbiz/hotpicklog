@@ -2,14 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import pool from "@/lib/db";
 import { verifyAdminKey } from "@/lib/seo";
-import { RowDataPacket, ResultSetHeader } from "mysql2";
-
-function toMysqlDatetime(value: unknown): string | null {
-  if (!value || typeof value !== "string") return null;
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 19).replace("T", " ");
-}
 
 export async function GET(
   _request: NextRequest,
@@ -22,17 +14,17 @@ export async function GET(
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
 
-    const [[post]] = await pool.query<RowDataPacket[]>(
-      "SELECT * FROM posts WHERE id = ?",
+    const { rows } = await pool.query(
+      "SELECT * FROM posts WHERE id = $1",
       [postId]
     );
+    const post = rows[0];
 
     if (!post) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    // 조회수 증가
-    await pool.query("UPDATE posts SET view_count = view_count + 1 WHERE id = ?", [postId]);
+    await pool.query("UPDATE posts SET view_count = view_count + 1 WHERE id = $1", [postId]);
 
     return NextResponse.json(post);
   } catch (error) {
@@ -63,8 +55,8 @@ export async function PATCH(
 
     for (const field of allowedFields) {
       if (field in body) {
-        updates.push(`${field} = ?`);
-        values.push(field === "published_at" ? toMysqlDatetime(body[field]) : body[field]);
+        updates.push(`${field} = $${updates.length + 1}`);
+        values.push(body[field]);
       }
     }
 
@@ -73,13 +65,14 @@ export async function PATCH(
     }
 
     values.push(postId);
-    await pool.query<ResultSetHeader>(
-      `UPDATE posts SET ${updates.join(", ")} WHERE id = ?`,
+    await pool.query(
+      `UPDATE posts SET ${updates.join(", ")} WHERE id = $${values.length}`,
       values
     );
 
     // ISR 재생성
-    const [[post]] = await pool.query<RowDataPacket[]>("SELECT slug FROM posts WHERE id = ?", [postId]);
+    const { rows: slugRows } = await pool.query("SELECT slug FROM posts WHERE id = $1", [postId]);
+    const post = slugRows[0];
     if (post) {
       revalidatePath(`/posts/${post.slug}`);
     }
@@ -107,9 +100,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
 
-    const [[post]] = await pool.query<RowDataPacket[]>("SELECT slug FROM posts WHERE id = ?", [postId]);
+    const { rows: delRows } = await pool.query("SELECT slug FROM posts WHERE id = $1", [postId]);
+    const post = delRows[0];
 
-    await pool.query("DELETE FROM posts WHERE id = ?", [postId]);
+    await pool.query("DELETE FROM posts WHERE id = $1", [postId]);
 
     if (post) {
       revalidatePath(`/posts/${post.slug}`);

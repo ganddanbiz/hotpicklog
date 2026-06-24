@@ -1,0 +1,41 @@
+name: Daily Blog Post Generation
+
+on:
+  schedule:
+    - cron: '0 1 * * *'    # UTC 01:00 = KST 10:00, 매일
+  workflow_dispatch:          # 수동 실행 가능
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Generate post (attempt 1)
+        id: attempt1
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BLOG_ANTHROPIC_API_KEY: ${{ secrets.BLOG_ANTHROPIC_API_KEY }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_SITE_NAME: 득템로그
+        run: npm run generate
+      - name: Wait before retry
+        if: steps.attempt1.outcome == 'failure'
+        run: sleep 120
+      - name: Generate post (attempt 2 - retry)
+        if: steps.attempt1.outcome == 'failure'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BLOG_ANTHROPIC_API_KEY: ${{ secrets.BLOG_ANTHROPIC_API_KEY }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_SITE_NAME: 득템로그
+        run: npm run generate
