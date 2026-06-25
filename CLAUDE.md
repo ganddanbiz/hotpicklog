@@ -96,6 +96,12 @@ npm run product:tag   # 태그 확인
 - `NEXT_PUBLIC_SITE_URL=https://hotpicklog.com`
 - `NEXT_PUBLIC_SITE_NAME=득템로그`
 
+## GitHub 저장소 및 배포
+- **GitHub:** `ganddanbiz/hotpicklog`
+- **Vercel 프로젝트:** `hotpicklog`
+- **자동 발행:** 매일 KST 10:00 (`0 1 * * *` UTC, GitHub Actions)
+- **workflow_dispatch:** 텔레그램 `득템로그 발행` 명령으로 수동 트리거 가능
+
 ## 현재 발행 현황
-- 총 15편 발행 (2026-06-23 기준, product-005까지)
-- 남은 상품: 10개 (2026-06-23 기준)
+- 총 20편 발행 (2026-06-25 기준, product-008까지)
+- 남은 상품: 7개 (product-009~015)
