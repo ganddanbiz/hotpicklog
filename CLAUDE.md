@@ -11,6 +11,13 @@
 | 이미지 | 네이버 이미지 API (상품), Unsplash (폴백) |
 | DB | Neon PostgreSQL (us-east-1) |
 
+## 코드베이스 출처
+- **Create Next App → 경매AI블로그에서 발전한 독립 코드베이스**
+- 110/130/140과 완전히 다른 구조 (코드 참조 불가)
+- DB 라이브러리: `Pool` from `pg` (다른 블로그는 `@neondatabase/serverless`)
+- 쿠팡 파트너스 + 상품 관리 시스템 포함 (다른 블로그에 없는 기능)
+- GitHub Actions: `CLAUDE_CODE_OAUTH_TOKEN` 사용 (구독 토큰)
+
 ## 프로젝트 구조
 ```
 120 Blog_ Partners/
