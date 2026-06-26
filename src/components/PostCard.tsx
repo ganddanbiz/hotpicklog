@@ -1,39 +1,48 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Post } from "@/types";
 import PostShareButton from "./PostShareButton";
 import AdBanner from "./AdBanner";
+import { proxyUrl } from "@/lib/imageProxy";
 
 interface PostCardProps {
   posts: Partial<Post>[];
 }
 
 const catLabels: Record<string, string> = {
-  before: "입찰준비",
-  bidding: "입찰·낙찰",
-  after:   "명도·출구",
-  tax:     "세금·대출",
-  law:     "권리분석",
-  ai:      "AI활용",
+  식품:     "식품",
+  가전:     "가전·디지털",
+  생활:     "생활·주방",
+  패션:     "패션·의류",
+  뷰티:     "뷰티·건강",
+  스포츠:   "스포츠·레저",
+  육아:     "육아·완구",
+  반려동물: "반려동물",
+  상품리뷰: "상품리뷰",
 };
 
 const catBadgeClass: Record<string, string> = {
-  before: "badge badge-before",
-  bidding: "badge badge-bidding",
-  after:   "badge badge-after",
-  tax:     "badge badge-tax",
-  law:     "badge badge-law",
-  ai:      "badge badge-ai",
+  식품:     "badge badge-before",
+  가전:     "badge badge-bidding",
+  생활:     "badge badge-after",
+  패션:     "badge badge-tax",
+  뷰티:     "badge badge-law",
+  스포츠:   "badge badge-ai",
+  육아:     "badge badge-basic",
+  반려동물: "badge badge-mid",
+  상품리뷰: "badge badge-adv",
 };
 
 // Top border accent per category
 const catAccent: Record<string, string> = {
-  before: "var(--cat-before-c)",
-  bidding: "var(--cat-bidding-c)",
-  after:   "var(--cat-after-c)",
-  tax:     "var(--cat-tax-c)",
-  law:     "var(--cat-law-c)",
-  ai:      "var(--cat-ai-c)",
+  식품:     "#e85d04",
+  가전:     "#0077b6",
+  생활:     "#2d6a4f",
+  패션:     "#7b2d8b",
+  뷰티:     "#c77dff",
+  스포츠:   "#1b4332",
+  육아:     "#f48c06",
+  반려동물: "#6d4c41",
+  상품리뷰: "#e63946",
 };
 
 function getLevelBadge(slug?: string): { cls: string; label: string } | null {
@@ -77,7 +86,7 @@ export default function PostCard({ posts }: PostCardProps) {
         <div key={chunkIndex}>
           <div style={gridStyle}>
             {chunk.map((post) => {
-              const cat = post.category || "before";
+              const cat = post.category || "상품리뷰";
               const level = getLevelBadge(post.slug);
               const accent = catAccent[cat] || "var(--accent)";
               const publishedDate = post.published_at
@@ -93,12 +102,11 @@ export default function PostCard({ posts }: PostCardProps) {
                 >
                   {post.thumbnail_url ? (
                     <div className="post-card-thumb">
-                      <Image
-                        src={post.thumbnail_url}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={proxyUrl(post.thumbnail_url!)}
                         alt={post.title || ""}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        style={{ width: "100%", height: "100%", objectFit: "contain", background: "#f8f8f8", display: "block" }}
                       />
                     </div>
                   ) : (

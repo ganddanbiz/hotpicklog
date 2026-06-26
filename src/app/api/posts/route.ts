@@ -2,15 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import pool from "@/lib/db";
 import { generateSlug, verifyAdminKey } from "@/lib/seo";
-import { RowDataPacket, ResultSetHeader } from "mysql2";
-
-// ISO 8601 datetime → MySQL DATETIME 형식 변환
-function toMysqlDatetime(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 19).replace("T", " ");
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,28 +11,27 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get("category") || null;
     const offset = (page - 1) * limit;
 
-    let countQuery = "SELECT COUNT(*) as total FROM posts WHERE status = 'published'";
-    let dataQuery = `
-      SELECT id, title, slug, category, thumbnail_url, meta_description,
-             published_at, created_at, view_count
-      FROM posts
-      WHERE status = 'published'
-    `;
-    const params: (string | number)[] = [];
-    const countParams: (string | number)[] = [];
+    const countResult = category
+      ? await pool.query("SELECT COUNT(*) as total FROM posts WHERE status = 'published' AND category = $1", [category])
+      : await pool.query("SELECT COUNT(*) as total FROM posts WHERE status = 'published'");
+    const total = Number(countResult.rows[0].total);
 
-    if (category) {
-      countQuery += " AND category = ?";
-      dataQuery += " AND category = ?";
-      params.push(category);
-      countParams.push(category);
-    }
-
-    dataQuery += " ORDER BY published_at DESC LIMIT ? OFFSET ?";
-    params.push(limit, offset);
-
-    const [[{ total }]] = await pool.query<RowDataPacket[]>(countQuery, countParams);
-    const [posts] = await pool.query<RowDataPacket[]>(dataQuery, params);
+    const postsResult = category
+      ? await pool.query(
+          `SELECT id, title, slug, category, thumbnail_url, meta_description,
+                  published_at, created_at, view_count
+           FROM posts WHERE status = 'published' AND category = $1
+           ORDER BY published_at DESC LIMIT $2 OFFSET $3`,
+          [category, limit, offset]
+        )
+      : await pool.query(
+          `SELECT id, title, slug, category, thumbnail_url, meta_description,
+                  published_at, created_at, view_count
+           FROM posts WHERE status = 'published'
+           ORDER BY published_at DESC LIMIT $1 OFFSET $2`,
+          [limit, offset]
+        );
+    const posts = postsResult.rows;
 
     return NextResponse.json({
       posts,
@@ -73,9 +63,10 @@ export async function POST(request: NextRequest) {
 
     const finalSlug = slug || generateSlug(title);
 
-    const [result] = await pool.query<ResultSetHeader>(
+    const { rows: inserted } = await pool.query(
       `INSERT INTO posts (title, content, slug, category, thumbnail_url, meta_description, keywords, status, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id`,
       [
         title,
         content,
@@ -85,7 +76,7 @@ export async function POST(request: NextRequest) {
         meta_description || null,
         keywords || null,
         status || "draft",
-        toMysqlDatetime(published_at),
+        published_at || null,
       ]
     );
 
@@ -94,9 +85,9 @@ export async function POST(request: NextRequest) {
       revalidatePath(`/posts/${finalSlug}`);
     }
 
-    return NextResponse.json({ id: result.insertId, slug: finalSlug }, { status: 201 });
+    return NextResponse.json({ id: inserted[0].id, slug: finalSlug }, { status: 201 });
   } catch (error: unknown) {
-    if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ER_DUP_ENTRY") {
+    if (error instanceof Error && "code" in error && (error as { code: string }).code === "23505") {
       return NextResponse.json({ error: "slug already exists" }, { status: 409 });
     }
     console.error("POST /api/posts error:", error);
