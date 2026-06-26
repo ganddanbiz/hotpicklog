@@ -1,39 +1,40 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import pool from "@/lib/db";
-import { RowDataPacket } from "mysql2";
 import { Post } from "@/types";
 import JsonLd from "@/components/JsonLd";
 import CommentSection from "@/components/CommentSection";
 import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/ShareButton";
 import Link from "next/link";
+import { proxyUrl, proxyImagesInHtml } from "@/lib/imageProxy";
+import CoupangAd from "@/components/CoupangAd";
 
 export const revalidate = 3600;
 
 type Props = { params: Promise<{ slug: string }> };
 
 async function getPost(slug: string): Promise<Post | null> {
-  const [rows] = await pool.query<RowDataPacket[]>(
-    "SELECT * FROM posts WHERE slug = ? AND status = 'published'",
+  const { rows } = await pool.query(
+    "SELECT * FROM posts WHERE slug = $1 AND status = 'published'",
     [slug]
   );
   return (rows[0] as Post) || null;
 }
 
 async function getLikeCount(postId: number): Promise<number> {
-  const [[row]] = await pool.query<RowDataPacket[]>(
-    "SELECT COUNT(*) as count FROM likes WHERE post_id = ?",
+  const { rows } = await pool.query(
+    "SELECT COUNT(*) as count FROM likes WHERE post_id = $1",
     [postId]
   );
-  return row?.count || 0;
+  return Number(rows[0]?.count) || 0;
 }
 
 export async function generateStaticParams() {
-  const [rows] = await pool.query<RowDataPacket[]>(
+  const { rows } = await pool.query(
     "SELECT slug FROM posts WHERE status = 'published'"
   );
-  return rows.map((row) => ({ slug: row.slug }));
+  return rows.map((row: { slug: string }) => ({ slug: row.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -64,20 +65,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 const catLabels: Record<string, string> = {
-  before:  "입찰준비",
-  bidding: "입찰·낙찰",
-  after:   "명도·출구",
-  tax:     "세금·대출",
-  law:     "권리분석",
-  ai:      "AI활용",
+  식품:     "식품",
+  가전:     "가전·디지털",
+  생활:     "생활·주방",
+  패션:     "패션·의류",
+  뷰티:     "뷰티·건강",
+  스포츠:   "스포츠·레저",
+  육아:     "육아·완구",
+  반려동물: "반려동물",
+  상품리뷰: "상품리뷰",
 };
 const catBadgeClass: Record<string, string> = {
-  before: "badge badge-before",
-  bidding: "badge badge-bidding",
-  after:   "badge badge-after",
-  tax:     "badge badge-tax",
-  law:     "badge badge-law",
-  ai:      "badge badge-ai",
+  식품:     "badge badge-before",
+  가전:     "badge badge-bidding",
+  생활:     "badge badge-after",
+  패션:     "badge badge-tax",
+  뷰티:     "badge badge-law",
+  스포츠:   "badge badge-ai",
+  육아:     "badge badge-basic",
+  반려동물: "badge badge-mid",
+  상품리뷰: "badge badge-adv",
 };
 
 export default async function PostPage({ params }: Props) {
@@ -85,7 +92,7 @@ export default async function PostPage({ params }: Props) {
   const post = await getPost(slug);
   if (!post) notFound();
 
-  await pool.query("UPDATE posts SET view_count = view_count + 1 WHERE id = ?", [post.id]);
+  await pool.query("UPDATE posts SET view_count = view_count + 1 WHERE id = $1", [post.id]);
   const likeCount = await getLikeCount(post.id);
 
   const publishedDate = post.published_at
@@ -110,7 +117,7 @@ export default async function PostPage({ params }: Props) {
         {/* ── 상단 내비 ─────────────────────────── */}
         <header style={{
           background: "var(--header-bg)",
-          borderBottom: "1px solid #2a2a28",
+          borderBottom: "1px solid rgba(255,255,255,0.07)",
         }}>
           <div style={{
             maxWidth: "52rem", margin: "0 auto",
@@ -118,35 +125,37 @@ export default async function PostPage({ params }: Props) {
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
             <Link href="/" style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: "1rem",
-              fontWeight: 700,
-              color: "var(--header-text)",
+              fontSize: "1.0625rem",
+              fontWeight: 900,
+              color: "#ffffff",
               textDecoration: "none",
-              letterSpacing: "-0.01em",
+              letterSpacing: "-0.02em",
             }}>
-              내 블로그
+              {process.env.NEXT_PUBLIC_SITE_NAME || "득템로그"}
             </Link>
             <Link href="/" style={{
               fontSize: "0.75rem",
               color: "var(--header-muted)",
               textDecoration: "none",
               display: "flex", alignItems: "center", gap: "0.3rem",
+              padding: "0.3rem 0.75rem",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: "999px",
+              transition: "border-color 0.15s",
             }}>
               ← 목록으로
             </Link>
           </div>
         </header>
 
-        <main style={{ maxWidth: "52rem", margin: "0 auto", padding: "0 1.5rem" }}>
+        <main className="main-px" style={{ maxWidth: "52rem", margin: "0 auto" }}>
 
           {/* ── 아티클 ─────────────────────────── */}
-          <article style={{
+          <article className="article-pad" style={{
             background: "var(--bg-card)",
             borderRadius: "0 0 16px 16px",
             border: "1px solid var(--border)",
             borderTop: "none",
-            padding: "2.5rem 2.5rem 3rem",
             marginBottom: "2rem",
             boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
           }}>
@@ -204,17 +213,20 @@ export default async function PostPage({ params }: Props) {
               }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={post.thumbnail_url}
+                  src={proxyUrl(post.thumbnail_url)}
                   alt={post.title}
-                  style={{ width: "100%", height: "auto", maxHeight: "24rem", objectFit: "cover", display: "block" }}
+                  style={{ width: "100%", height: "auto", display: "block", background: "#f8f8f8" }}
                 />
               </div>
             )}
 
+            {/* 쿠팡 다이내믹 광고 */}
+            <CoupangAd />
+
             {/* 본문 */}
             <div
               className="prose"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{ __html: proxyImagesInHtml(post.content) }}
             />
 
             {/* 좋아요 & 공유 */}
