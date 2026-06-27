@@ -408,6 +408,8 @@ TITLE: <여기에 블로그 제목>
 - 순수 HTML만 출력, 마크다운 금지
 - 사용 태그: <h2> <h3> <p> <br> <ul> <ol> <li> <strong> <blockquote> <table> <thead> <tbody> <tr> <th> <td>
 - <h1> 금지
+- <strong>은 핵심 단어·수치에만 최소 사용 (문장 전체를 감싸거나 연속 사용 금지)
+- 인라인 style 속성 절대 사용 금지
 - 각 문단 사이 <br> 충분히 넣어서 여백 확보
 - h2 섹션 제목에도 이모지 포함 (예: <h2>📦 이 제품, 뭐가 다를까요?</h2>)`;
 }
@@ -439,7 +441,9 @@ function buildPrompt(topic: Topic): string {
 [HTML 출력 규칙]
 - 순수 HTML만 출력, 마크다운 금지
 - 사용 태그: <h2> <h3> <p> <br> <ul> <ol> <li> <strong> <blockquote> <table> <thead> <tbody> <tr> <th> <td>
-- <h1> 금지, 제목 출력 금지`;
+- <h1> 금지, 제목 출력 금지
+- <strong>은 핵심 단어·수치에만 최소 사용 (문장 전체를 감싸거나 연속 사용 금지)
+- 인라인 style 속성 절대 사용 금지`;
 }
 
 // ── Claude 응답에서 TITLE 추출 ────────────────────

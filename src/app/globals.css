@@ -269,7 +269,11 @@ body {
 .prose h3 { font-size: 1.125rem; }
 .prose h4 { font-size: 1rem; }
 
-.prose p { margin-bottom: 1.35em; }
+.prose p {
+  margin-bottom: 1.35em;
+  text-align: justify;
+  word-break: keep-all;
+}
 
 .prose ul,
 .prose ol {

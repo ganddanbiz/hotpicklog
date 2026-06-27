@@ -105,3 +105,49 @@ npm run product:tag   # 태그 확인
 ## 현재 발행 현황
 - 총 20편 발행 (2026-06-25 기준, product-008까지)
 - 남은 상품: 7개 (product-009~015)
+
+
+## 검수 및 수정 절차
+
+### 검수 시점
+- 글 발행 후 자동 검수 또는 수동 요청 시 실행
+
+### 검수 항목
+| 항목 | 기준 |
+|------|------|
+| 내용 적합성 | 블로그 주제에 맞는지, 독자에게 유용한지 |
+| 이미지 적합성 | 내용과 이미지가 일치하는지, 저작권 문제 없는지 |
+| 사실 기반 | 통계·수치·고유명사를 웹 검색으로 팩트체크 |
+| 문체·품질 | 맞춤법, 가독성, 블로그 감성 일치 여부 |
+
+### 자주 발생하는 오류 유형
+- AI가 그럴듯한 수치를 생성(hallucination) → 반드시 출처 검색 후 대조
+- 이미지 키워드 미스매치 → 본문 주제와 이미지 일치 확인
+- 시사 내용 outdated → 발행일 기준 최신 정보인지 확인
+
+### 오류 수정 방법 (DB 직접 수정)
+```bash
+# 1. .env.local에서 DATABASE_URL 로드
+source .env.local  # 또는 직접 export
+
+# 2. 특정 slug의 content/thumbnail_url 수정
+psql $DATABASE_URL -c "
+UPDATE posts
+SET content = $content_수정본$,
+    updated_at = NOW()
+WHERE slug = '수정할-slug';
+"
+
+# 3. 썸네일 교체
+psql $DATABASE_URL -c "
+UPDATE posts SET thumbnail_url = '새이미지URL' WHERE slug = 'slug';
+"
+
+# 4. 수정 확인
+psql $DATABASE_URL -c "SELECT slug, title, updated_at FROM posts WHERE slug = 'slug';"
+```
+
+### 검수 결과 기록
+- 검수 후 이슈가 있으면 `scripts/review.log`에 날짜·slug·내용·처리결과 기록
+- 형식: `[YYYY-MM-DD] slug | 이슈 | 처리결과`
+
