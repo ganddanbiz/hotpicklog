@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const TELEGRAM_TOKEN = "8860516747:AAGikwdjA120Jy8Dei9_IFVCFh4l3LudruI";
-const TELEGRAM_CHAT_ID = "6625834513";
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "6625834513";
 
 export async function POST(req: NextRequest) {
   const { name, email, type, message } = await req.json();

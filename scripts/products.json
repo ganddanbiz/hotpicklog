@@ -160,5 +160,59 @@
     "slug": "product-015",
     "tag": "<iframe src=\"https://coupa.ng/cnysU5\" width=\"120\" height=\"240\" frameborder=\"0\" scrolling=\"no\" referrerpolicy=\"unsafe-url\" browsingtopics></iframe>",
     "referenceUrl": "https://youtube.com/shorts/VbgfusjCXOQ?si=z2F6MltB49_V_vw8"
+  },
+  {
+    "id": 16,
+    "name": "토레타 제로 이온음료 500ml 24개",
+    "url": "https://link.coupang.com/a/fb5bexYoxw",
+    "category": "식품",
+    "keywords": "이온음료,토레타,제로음료,수분보충,여름음료",
+    "used": false,
+    "slug": "product-016"
+  },
+  {
+    "id": 17,
+    "name": "호무로 쿨네스트 냉감이불",
+    "url": "https://link.coupang.com/a/fb5eI49FBI",
+    "category": "생활용품",
+    "keywords": "냉감이불,여름이불,쿨링이불,침구,열대야",
+    "used": false,
+    "slug": "product-017"
+  },
+  {
+    "id": 18,
+    "name": "파스드리미트 심리스 쿨링 팔토시 FREE 2p x 2개",
+    "url": "https://link.coupang.com/a/fb5jnAqchg",
+    "category": "패션잡화",
+    "keywords": "팔토시,쿨링팔토시,자외선차단,여름토시,스포츠토시",
+    "used": false,
+    "slug": "product-018"
+  },
+  {
+    "id": 19,
+    "name": "미르도하 자외선차단 양산 초경량 우양산",
+    "url": "https://link.coupang.com/a/fb5lxrGBYi",
+    "category": "패션잡화",
+    "keywords": "양산,우양산,자외선차단,초경량양산,UV차단",
+    "used": false,
+    "slug": "product-019"
+  },
+  {
+    "id": 20,
+    "name": "비바슈슈 남성용 쫀쫀하고 목이 긴 무지 중목 양말 8켤레",
+    "url": "https://link.coupang.com/a/fb5okKFI7M",
+    "category": "패션잡화",
+    "keywords": "양말,남성양말,중목양말,무지양말,양말세트",
+    "used": false,
+    "slug": "product-020"
+  },
+  {
+    "id": 21,
+    "name": "썬리즈 자외선차단 쿨 스포츠 골프 마스크 1+1",
+    "url": "https://link.coupang.com/a/fb5qO6KbLg",
+    "category": "스포츠",
+    "keywords": "골프마스크,자외선차단마스크,쿨마스크,스포츠마스크,여름마스크",
+    "used": false,
+    "slug": "product-021"
   }
 ]
