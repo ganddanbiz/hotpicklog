@@ -214,5 +214,23 @@
     "keywords": "골프마스크,자외선차단마스크,쿨마스크,스포츠마스크,여름마스크",
     "used": true,
     "slug": "product-021"
+  },
+  {
+    "id": 22,
+    "name": "듀이트리 하이 아미노 올 클렌징 대용량 밀크 400ml",
+    "url": "https://link.coupang.com/a/fkqEE7piXk",
+    "category": "뷰티",
+    "keywords": "클렌징밀크,듀이트리,아미노클렌징,올클렌징,대용량클렌징",
+    "used": false,
+    "slug": "product-022"
+  },
+  {
+    "id": 23,
+    "name": "야마치쿠 스스케 23cm 천연 대나무 일본 젓가락 스퀘어 Yamachiku Susuke",
+    "url": "https://link.coupang.com/a/fkqQIwAHWm",
+    "category": "주방",
+    "keywords": "대나무젓가락,야마치쿠,일본젓가락,천연젓가락,스퀘어젓가락",
+    "used": false,
+    "slug": "product-023"
   }
 ]
