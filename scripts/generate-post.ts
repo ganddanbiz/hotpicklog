@@ -350,6 +350,15 @@ function markProductUsed(product: Product): void {
   }
 }
 
+// ── 최근 발행 제목 조회 (중복 방지용) ───────────
+async function getRecentTitles(count: number = 7): Promise<string[]> {
+  const { rows } = await pool.query(
+    "SELECT title FROM posts WHERE status = 'published' ORDER BY published_at DESC LIMIT $1",
+    [count]
+  );
+  return rows.map((r: { title: string }) => r.title);
+}
+
 // ── 다음 발행할 주제 결정 ─────────────────────────
 async function getNextTopic(): Promise<Topic | null> {
   const { rows } = await pool.query(
@@ -415,9 +424,12 @@ TITLE: <여기에 블로그 제목>
 }
 
 // ── 일반 주제 프롬프트 생성 ──────────────────────
-function buildPrompt(topic: Topic): string {
+function buildPrompt(topic: Topic, recentTitles: string[] = []): string {
   const siteName = process.env.NEXT_PUBLIC_SITE_NAME || "내 블로그";
-  return `당신은 "${siteName}" 블로그 작가입니다.
+  const avoidSection = recentTitles.length > 0
+    ? `[최근 발행된 글 — 다른 각도로 작성할 것]\n아래 글들과 핵심 사례·설명 방식이 겹치지 않도록 새로운 관점으로 접근해주세요:\n${recentTitles.map(t => `- ${t}`).join('\n')}\n\n`
+    : '';
+  return avoidSection + `당신은 "${siteName}" 블로그 작가입니다.
 네이버 블로그 감성으로 아래 주제의 글을 작성해주세요.
 
 주제: ${topic.title}
@@ -591,7 +603,8 @@ async function main() {
       writeLog(`📝 주제 선택: [${topic.level}] ${topic.index}/130 - ${topic.title}`);
 
       writeLog("🤖 Claude로 글 생성 중...");
-      const prompt = buildPrompt(topic);
+      const recentTitles = await getRecentTitles(7);
+      const prompt = buildPrompt(topic, recentTitles);
       const result = await anthropic.messages.create({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 4096,

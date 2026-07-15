@@ -25,9 +25,9 @@
 │   ├── generate-post.ts    ← AI 글 자동 생성
 │   ├── add-product.ts      ← 상품 관리
 │   ├── products.json       ← 상품 목록 (used 플래그)
+│   ├── topics.ts           ← 일반 주제 목록 (폴백용 쇼핑 가이드)
 │   └── generate.log        ← 발행 로그
 ├── .env.local              ← 환경변수
-├── src/lib/topics.ts       ← 일반 주제 목록
 └── CLAUDE.md               ← 이 파일
 ```
 
@@ -39,7 +39,10 @@ npm run generate
 
 ## 발행 모드 (우선순위)
 1. **상품 리뷰 모드** — `products.json`에 `used: false` 상품이 있으면 우선 발행
-2. **일반 주제 모드** — 상품 없으면 `topics.ts` 기반 글 발행
+2. **일반 주제 모드** — 상품 없으면 `scripts/topics.ts` 기반 글 발행
+   - ⚠️ `topics.ts`는 **이 블로그가 "상품 소개 블로그"임을 전제로** 한 쇼핑·득템 가이드 주제로만 구성한다.
+     ("고급 접근법 / 핵심 개념 10가지" 같은 정체불명 껍데기 예시 주제 금지 — 2026-07 실제 발행 사고 있었음)
+   - 슬러그 패턴: `basic-NNN` / `mid-NNN` / `adv-NNN`. DB에 이미 있는 슬러그는 건너뛰고 다음 미발행 주제를 발행한다.
 
 ## 상품 관리 명령
 ```bash
@@ -88,6 +91,10 @@ npm run product:tag   # 태그 확인
 - 상품 이미지: 네이버 이미지 검색 → h2 섹션마다 삽입 (클릭 시 상품 링크)
 - 폴백: Unsplash
 - 이미지 클릭 → 쿠팡 상품 링크 연결
+- ⚠️ **일반 주제 글은 썸네일이 Unsplash에만 의존** → `UNSPLASH_ACCESS_KEY` 미설정 시 썸네일이 비어(🏛️ 빈 카드) 발행된다.
+  키가 없으면 발행 후 네이버 이미지 API로 썸네일을 수동 보완할 것. (상품 글은 네이버 이미지라 문제 없음)
+- ⚠️ **썸네일 저작권 주의**: 네이버 이미지 검색 결과에 `depositphotos / shutterstock / istockphoto / gettyimages / 123rf` 등
+  워터마크 스톡 이미지가 섞인다. 썸네일은 쿠팡/네이버 쇼핑 CDN(`coupangcdn.com`, `phinf.naver.net`) 등 깨끗한 상품 이미지로 고를 것.
 
 ## 환경변수 (.env.local)
 - `BLOG_ANTHROPIC_API_KEY` — Claude API (일반 `ANTHROPIC_API_KEY` 사용 금지 → Claude Code CLI 충돌)
@@ -103,8 +110,18 @@ npm run product:tag   # 태그 확인
 - **workflow_dispatch:** 텔레그램 `득템로그 발행` 명령으로 수동 트리거 가능
 
 ## 현재 발행 현황
-- 총 20편 발행 (2026-06-25 기준, product-008까지)
-- 남은 상품: 7개 (product-009~015)
+- 2026-07-16 기준: 상품 리뷰 product-001~022 + 일반 주제 basic-001 발행됨
+- 자동 발행(매일 KST 10:00)이 정상 작동 중 → products.json의 미발행 상품을 순서대로 소진
+- **2026-07 정리 작업**: 템플릿 예시 껍데기 글 5편(basic-001~003, mid-001, adv-001) 삭제,
+  `topics.ts`를 상품 블로그용 쇼핑 가이드 주제로 교체, basic-001("쿠팡 가성비 상품 고르는 법") 수동 발행
+
+## 운영 주의사항 (2026-07 확인)
+- ⚠️ **이 폴더(`참고폴더/득템로그`)는 로컬 사본** — 실제 자동 발행은 GitHub 저장소(`ganddanbiz/hotpicklog`)
+  기준으로 돈다. `topics.ts` / `products.json` 등 **파일 수정은 커밋·푸시해야 자동 발행에 반영**된다.
+  (단, `DATABASE_URL`은 프로덕션 Neon이라 DB 직접 수정·발행은 로컬에서도 즉시 라이브 반영됨)
+- ⚠️ **products.json `used` 플래그가 실제 DB와 어긋날 수 있음** — 로컬 사본에는 자동 발행분이 누락되기도 한다.
+  발행 전 `SELECT slug FROM posts WHERE slug ~ '^product-'`로 대조해 `used`를 DB 기준으로 동기화할 것.
+  (동기화 없이 generate 시 이미 발행된 상품 슬러그 → UNIQUE 충돌 또는 중복 글 위험)
 
 
 ## 검수 및 수정 절차
