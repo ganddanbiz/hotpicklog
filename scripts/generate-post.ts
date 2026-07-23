@@ -161,15 +161,21 @@ function injectImagesIntoContent(html: string, images: UnsplashResult[]): string
   let imgIdx = 0;
   for (let i = 1; i < parts.length && imgIdx < images.length; i++) {
     const img = images[imgIdx++];
+    const caption = img.attribution
+      ? [
+          `<figcaption style="position:absolute;bottom:8px;right:10px;font-size:0.65rem;`,
+          `color:rgba(255,255,255,0.85);background:rgba(0,0,0,0.45);`,
+          `padding:2px 7px;border-radius:4px;line-height:1.5;white-space:nowrap;">`,
+          img.attribution,
+          `</figcaption>`,
+        ].join("")
+      : "";
     const figure = [
       `<figure style="margin:1.75em 0;position:relative;display:block;">`,
       `<img src="${img.url}" alt="관련 이미지" loading="lazy"`,
       ` style="width:100%;max-height:400px;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:block;" />`,
-      `<figcaption style="position:absolute;bottom:8px;right:10px;font-size:0.65rem;`,
-      `color:rgba(255,255,255,0.85);background:rgba(0,0,0,0.45);`,
-      `padding:2px 7px;border-radius:4px;line-height:1.5;white-space:nowrap;">`,
-      img.attribution,
-      `</figcaption></figure>`,
+      caption,
+      `</figure>`,
     ].join("");
     parts[i] = parts[i] + figure;
   }
@@ -214,9 +220,12 @@ async function fetchNaverImages(query: string, count: number = 6): Promise<Naver
       items: Array<{ link: string; thumbnail: string; sizewidth: string; sizeheight: string }>;
     };
 
+    // 워터마크 스톡 이미지 도메인 제외 (CLAUDE.md 저작권 주의)
+    const BLOCKED_DOMAINS = ["depositphotos", "shutterstock", "istockphoto", "gettyimages", "123rf", "alamy", "dreamstime", "freepik", "stock.adobe"];
     // 작은 이미지 제외, 최대 count장 (width·height 포함 반환)
     const images = data.items
       .filter(item => Number(item.sizewidth) >= 300 && item.link.startsWith("http"))
+      .filter(item => !BLOCKED_DOMAINS.some(d => item.link.toLowerCase().includes(d)))
       .map(item => ({
         url: item.link,
         width: Number(item.sizewidth) || 0,
@@ -620,12 +629,22 @@ async function main() {
       const content = cleanHtml(rawContent);
       writeLog(`✍️  생성 완료 (${content.length}자)`);
 
-      writeLog("🖼️  Unsplash 이미지 가져오는 중...");
-      const usedIds = await getUsedImageIds();
-      const allImages = await fetchUnsplashImages(topic.category, 3, usedIds);
-      const thumbnail = allImages[0] ?? null;
-      const inlineImages = allImages.slice(1, 3);
-      const contentWithImages = coupangTopBanner() + injectImagesIntoContent(content, inlineImages);
+      // 일반 주제 글은 Unsplash 키가 없을 수 있어 네이버 이미지를 우선 사용, 없으면 Unsplash 폴백.
+      writeLog("🖼️  이미지 가져오는 중...");
+      const naverImages = await fetchNaverImages(topic.keywords || topic.title, 3);
+      let thumbnail: { url: string } | null = null;
+      let bodyWithImages: string;
+      if (naverImages.length > 0) {
+        thumbnail = { url: naverImages[0].url };
+        const inline = naverImages.slice(1, 3).map(n => ({ url: n.url, attribution: "" }));
+        bodyWithImages = injectImagesIntoContent(content, inline);
+      } else {
+        const usedIds = await getUsedImageIds();
+        const uns = await fetchUnsplashImages(topic.category, 3, usedIds);
+        thumbnail = uns[0] ?? null;
+        bodyWithImages = injectImagesIntoContent(content, uns.slice(1, 3));
+      }
+      const contentWithImages = coupangTopBanner() + bodyWithImages;
       if (thumbnail) writeLog(`🖼️  썸네일: ${thumbnail.url}`);
 
       const postData: PostData = {
