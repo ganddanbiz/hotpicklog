@@ -576,6 +576,12 @@ async function main() {
         meta_description: `${product.name}의 특징, 장단점, 가격 분석까지 꼼꼼하게 정리했습니다. 구매 전 꼭 확인하세요.`,
       };
 
+      // 이미지 없이 발행 방지: 썸네일과 본문 이미지가 모두 있어야 발행한다.
+      if (!thumbnailUrl || !/<img\s/i.test(content)) {
+        writeLog("❌ 이미지 없이 발행 방지 — 썸네일 또는 본문 이미지가 없어 발행을 중단합니다 (네이버/Unsplash 이미지 수집 실패). 상품은 미사용으로 남아 다음 실행 때 재시도됩니다.");
+        process.exit(1);
+      }
+
       // DB 저장
       const postId = await savePost(postData, content, thumbnailUrl);
       writeLog(`💾 DB 저장 완료 (id: ${postId}, slug: ${product.slug})`);
@@ -629,6 +635,13 @@ async function main() {
         keywords: topic.keywords,
         meta_description: topic.meta_description,
       };
+
+      // 이미지 없이 발행 방지: 썸네일과 본문 이미지가 모두 있어야 발행한다.
+      // slug를 소비하지 않고 중단 → 다음 실행 때 재시도.
+      if (!thumbnail || !/<img\s/i.test(contentWithImages)) {
+        writeLog("❌ 이미지 없이 발행 방지 — 썸네일 또는 본문 이미지가 없어 발행을 중단합니다 (Unsplash 레이트리밋/키 점검 필요).");
+        process.exit(1);
+      }
 
       const postId = await savePost(postData, contentWithImages, thumbnail?.url ?? null);
       writeLog(`💾 DB 저장 완료 (id: ${postId}, slug: ${topic.slug})`);
