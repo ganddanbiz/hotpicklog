@@ -10,7 +10,8 @@
     "generate": "tsx scripts/generate-post.ts",
     "product:add": "tsx scripts/add-product.ts",
     "product:list": "tsx scripts/add-product.ts 목록",
-    "product:tag": "tsx scripts/add-product.ts 태그"
+    "product:tag": "tsx scripts/add-product.ts 태그",
+    "product:pick": "tsx scripts/pick-product.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",

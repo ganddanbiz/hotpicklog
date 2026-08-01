@@ -1,0 +1,37 @@
+name: Weekly Product Candidate Pick
+
+# 네이버 데이터랩으로 "이번 주 뜨는 생활용품" 후보를 뽑아 텔레그램으로 보고한다.
+# 상품을 자동으로 등록하지는 않는다 — 대표님이 후보 중에 골라 쿠팡 파트너스 링크를
+# 만든 뒤 `npm run product:add` 로 넣는 반자동 방식(트렌드조달 파이프라인 Phase 1).
+#
+# 필요한 GitHub Secrets:
+#   NAVER_CLIENT_ID / NAVER_CLIENT_SECRET  (이미 daily-post.yml에서 사용 중)
+#   TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID  (없으면 실행은 되고 전송만 생략됨)
+
+on:
+  schedule:
+    - cron: '0 23 * * 6'    # UTC 토 23:00 = KST 일요일 08:00, 주 1회
+  workflow_dispatch:
+    inputs:
+      top:
+        description: '후보 개수'
+        required: false
+        default: '5'
+
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Pick product candidates
+        env:
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: npm run product:pick -- --top=${{ github.event.inputs.top || '5' }}
