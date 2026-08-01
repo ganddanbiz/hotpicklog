@@ -1,0 +1,42 @@
+name: Telegram Product Inbox
+
+# 대표님이 쿠팡 앱에서 "공유 → 텔레그램"으로 봇에 보낸 상품을 읽어
+# products.json에 등록하고 커밋·푸시한다. 발행(KST 09:00) 30분 전에 돌아서
+# 오전에 보내신 상품이 당일 발행에 반영된다.
+#
+# 텔레그램 전송은 ① 새로 등록된 상품이 있을 때 ② 재고가 3개 미만일 때만 나간다.
+# (매일 도는 잡이라 빈 알림이 반복되지 않게)
+#
+# 필요한 GitHub Secrets: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID
+
+on:
+  schedule:
+    - cron: '30 23 * * *'   # UTC 23:30 = KST 08:30, 매일
+  workflow_dispatch:
+
+# 동시에 두 개가 돌면 products.json 커밋이 충돌한다
+concurrency:
+  group: products-json
+  cancel-in-progress: false
+
+jobs:
+  inbox:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # products.json 커밋 권한
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Read telegram inbox
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: npm run product:inbox -- --push

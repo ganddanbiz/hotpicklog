@@ -40,6 +40,9 @@ const DRY = args.includes("--dry");
 const PUSH = args.includes("--push");
 const STDIN = args.includes("--stdin");
 
+const LOW_STOCK = 3; // 대기중인 상품이 이 개수 미만이면 재고 경고 (설계서 기준)
+const PUBLISH_PER_WEEK = 3; // 화·목·토 주 3회 발행 → 남은 주수 계산용
+
 const OFFSET_FILE = path.resolve(process.cwd(), "scripts/.telegram-offset");
 const COUPANG_RE = /https?:\/\/(?:link\.coupang\.com\/a\/[A-Za-z0-9]+|(?:www\.)?coupang\.com\/vp\/products\/[^\s]+)/i;
 
@@ -225,17 +228,24 @@ function git(...a: string[]): string {
 
 function commitAndPush(added: Product[]): string {
   const names = added.map((p) => p.name.slice(0, 20)).join(", ");
-  git("add", "scripts/products.json");
+  // 오프셋도 함께 커밋한다 — 이게 없으면 CI가 매일 같은 메시지를 다시 읽어
+  // 같은 알림을 반복해서 보낸다 (CI는 실행마다 새 작업공간이라 로컬 파일이 남지 않음)
+  git("add", "scripts/products.json", "scripts/.telegram-offset");
   const staged = execFileSync("git", ["diff", "--cached", "--name-only"], {
     encoding: "utf-8",
   }).trim();
   if (!staged) return "변경 없음 — 커밋 생략";
-  git(
-    "commit",
-    "-m",
-    `상품 ${added.length}종 추가 (텔레그램 수신): ${names}\n\nCo-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
-  );
-  git("push", "origin", "HEAD:main");
+  const msg = added.length
+    ? `상품 ${added.length}종 추가 (텔레그램 수신): ${names}\n\nCo-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
+    : `chore: 텔레그램 수신 오프셋 갱신 [skip ci]`;
+  git("commit", "-m", msg);
+  try {
+    git("push", "origin", "HEAD:main");
+  } catch {
+    // 발행 워크플로가 products.json을 먼저 커밋했을 수 있다 → 리베이스 후 재시도
+    git("pull", "--rebase", "origin", "main");
+    git("push", "origin", "HEAD:main");
+  }
   return `커밋·푸시 완료 (${git("rev-parse", "--short", "HEAD")})`;
 }
 
@@ -270,34 +280,41 @@ async function main() {
   }
 
   const parsed: Parsed[] = [];
+  const orphanLinks: string[] = []; // 링크는 있는데 상품명이 없어 등록 못 한 것
   let ignored = 0;
   for (const t of texts) {
     const ps = parseMessage(t);
-    if (ps.length) parsed.push(...ps);
+    if (ps.length) {
+      parsed.push(...ps);
+      continue;
+    }
+    // 링크는 왔는데 상품명이 없으면 조용히 버리지 말고 되물어야 한다
+    const links = t.match(new RegExp(COUPANG_RE.source, "gi"));
+    if (links) orphanLinks.push(...new Set(links));
     else ignored++;
   }
-  if (ignored) console.log(`  (쿠팡 링크나 상품명이 없어 무시: ${ignored}건)`);
+  if (ignored) console.log(`  (쿠팡 링크가 없어 무시: ${ignored}건)`);
+  if (orphanLinks.length)
+    console.log(`  ⚠️ 상품명 없는 링크 ${orphanLinks.length}건: ${orphanLinks.join(", ")}`);
   console.log(`상품 ${parsed.length}건 인식`);
 
-  if (!parsed.length) {
-    console.log("등록할 상품이 없습니다.");
-    // 읽은 메시지는 소비 처리해서 다음 실행 때 다시 안 보게 한다
-    if (lastId !== null && !DRY) writeOffset(lastId + 1);
-    return;
-  }
-
-  const { added, skipped } = addProducts(parsed);
+  const { added, skipped } = parsed.length
+    ? addProducts(parsed)
+    : { added: [], skipped: [] as { name: string; reason: string }[] };
 
   for (const p of added) {
     console.log(`✅ [${p.id}] ${p.name}`);
     console.log(`     ${p.slug} | ${p.category} | ${p.keywords}`);
   }
   for (const s of skipped) console.log(`⏭️  ${s.name} — ${s.reason}`);
+  if (!parsed.length) console.log("등록할 상품이 없습니다.");
 
+  // 읽은 메시지는 소비 처리해서 다음 실행 때 다시 안 보게 한다
   if (lastId !== null && !DRY) writeOffset(lastId + 1);
 
+  // 등록된 상품이 없어도 오프셋 갱신은 커밋해야 CI가 같은 메시지를 다시 읽지 않는다
   let pushNote = "";
-  if (added.length && PUSH && !DRY) {
+  if (PUSH && !DRY) {
     try {
       pushNote = "\n" + commitAndPush(added);
     } catch (e: any) {
@@ -307,16 +324,74 @@ async function main() {
   }
 
   const pending = loadProducts().filter((p) => !p.used).length;
-  const lines = [
-    `📦 [득템로그] 상품 ${added.length}종 등록 완료`,
-    ...added.map((p) => `  · [${p.id}] ${p.name} (${p.slug})`),
-    ...skipped.map((s) => `  ⏭️ ${s.name} — ${s.reason}`),
-    ``,
-    `대기중인 상품: ${pending}개`,
-  ];
-  if (pushNote) lines.push(pushNote.trim());
-  else if (added.length && !PUSH)
-    lines.push(`⚠️ 아직 로컬에만 있습니다 — 푸시해야 자동 발행에 반영됩니다.`);
+  console.log(`대기중인 상품: ${pending}개`);
+
+  // ── 텔레그램 보고 ────────────────────────────
+  // 매일 자동 실행되므로 "새로 등록된 게 있을 때"와 "재고가 바닥일 때"만 보낸다.
+  // 이미 등록된 링크를 다시 읽어 skipped만 나온 경우는 조용히 넘어간다.
+  const lines: string[] = [];
+
+  if (added.length) {
+    lines.push(`📦 [득템로그] 상품 ${added.length}종 등록 완료`);
+    lines.push(...added.map((p) => `  · [${p.id}] ${p.name} (${p.slug})`));
+    if (skipped.length)
+      lines.push(...skipped.map((s) => `  ⏭️ ${s.name} — ${s.reason}`));
+    lines.push("");
+    lines.push(`대기중인 상품: ${pending}개`);
+    if (pushNote) lines.push(pushNote.trim());
+    else if (!PUSH)
+      lines.push(`⚠️ 아직 로컬에만 있습니다 — 푸시해야 자동 발행에 반영됩니다.`);
+  }
+
+  // 이미 등록된 링크를 다시 보내신 경우도 알려드린다 (보냈는데 무반응이면 안 되니)
+  const dupLinks = skipped.length && !added.length ? skipped : [];
+  if (dupLinks.length) {
+    if (lines.length) lines.push("");
+    lines.push(`ℹ️ [득템로그] 이미 등록된 상품이라 건너뛰었습니다:`);
+    lines.push(...dupLinks.map((s) => `  · ${s.name}`));
+  }
+
+  if (orphanLinks.length) {
+    // 상품명이 없어도 링크로 이미 등록된 건지는 알 수 있다 → 괜히 상품명을 요구하지 않는다
+    const all = loadProducts();
+    const known = orphanLinks.filter((u) => all.some((p) => p.url === u));
+    const unknown = orphanLinks.filter((u) => !known.includes(u));
+
+    if (known.length) {
+      if (lines.length) lines.push("");
+      lines.push(`ℹ️ [득템로그] 이미 등록된 링크입니다:`);
+      for (const u of known) {
+        const p = all.find((x) => x.url === u)!;
+        lines.push(`  · [${p.id}] ${p.name} (${p.slug}${p.used ? ", 발행완료" : ", 대기중"})`);
+      }
+    }
+    if (unknown.length) {
+      if (lines.length) lines.push("");
+      lines.push(
+        `⚠️ [득템로그] 상품명이 없어 등록하지 못한 링크 ${unknown.length}건:`,
+        ...unknown.map((u) => `  · ${u}`),
+        ``,
+        `상품명과 링크를 같이 보내주세요. 예:`,
+        `  유한락스 멀티액션 곰팡이제거제 510ml 3개`,
+        `  https://link.coupang.com/a/...`
+      );
+    }
+  }
+
+  if (pending < LOW_STOCK) {
+    if (lines.length) lines.push("");
+    const weeks = (pending / PUBLISH_PER_WEEK).toFixed(1);
+    lines.push(
+      `⚠️ [득템로그] 상품 재고 ${pending}개 — 약 ${weeks}주치입니다.`,
+      `쿠팡 앱에서 공유 → 텔레그램으로 상품을 보내주시면 자동 등록됩니다.`,
+      `이번 주 후보는 일요일 아침에 따로 보내드립니다.`
+    );
+  }
+
+  if (!lines.length) {
+    console.log("보고할 내용 없음 — 텔레그램 전송 생략.");
+    return;
+  }
 
   console.log("\n" + lines.join("\n"));
   await reply(lines.join("\n"));

@@ -43,6 +43,3 @@ next-env.d.ts
 
 # Claude Code 개인 설정
 .claude/settings.local.json
-
-# 텔레그램 수신 오프셋 (로컬 상태)
-scripts/.telegram-offset
