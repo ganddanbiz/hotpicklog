@@ -38,6 +38,7 @@ const TG_CHAT = process.env.TELEGRAM_CHAT_ID;
 const args = process.argv.slice(2);
 const DRY = args.includes("--dry");
 const PUSH = args.includes("--push");
+const STDIN = args.includes("--stdin");
 
 const OFFSET_FILE = path.resolve(process.cwd(), "scripts/.telegram-offset");
 const COUPANG_RE = /https?:\/\/(?:link\.coupang\.com\/a\/[A-Za-z0-9]+|(?:www\.)?coupang\.com\/vp\/products\/[^\s]+)/i;
@@ -103,16 +104,54 @@ function autoKeywords(name: string): string {
   return out.join(",");
 }
 
-export function parseMessage(text: string): Parsed | null {
-  const urlMatch = text.match(COUPANG_RE);
-  if (!urlMatch) return null;
-  const url = urlMatch[0];
+/**
+ * 붙여넣기 사고 보정: 링크가 공백 없이 이어 붙는 경우가 실제로 있다.
+ *   ".../a/fQ5Vle6hcyhttps://link.coupang.com/a/fQ5Vle6hcy"
+ * 그대로 두면 코드에 "https"까지 빨려 들어가 엉뚱한 URL이 만들어진다.
+ * 앞에 글자가 붙어 있는 http는 떼어내 별도 토큰으로 만든다.
+ */
+function normalizeLinks(text: string): string {
+  return text.replace(/(?!^)(?<=\S)(https?:\/\/)/g, " $1");
+}
+
+function parseOne(
+  lines: string[],
+  url: string,
+  fallbackCategory: string,
+  fallbackKeywords: string,
+  raw: string
+): Parsed | null {
+  const name = lines
+    .join(" ")
+    .replace(new RegExp(COUPANG_RE.source, "gi"), "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!name) return null; // 상품명을 못 찾으면 등록하지 않는다
+  return {
+    name,
+    url,
+    category: fallbackCategory || "생활",
+    keywords: fallbackKeywords || autoKeywords(name),
+    raw,
+  };
+}
+
+/**
+ * 메시지에서 상품을 뽑는다. 링크가 하나면 메시지 전체가 상품 하나,
+ * 여러 개면 **링크가 들어간 줄 하나하나가 각각 상품**이다.
+ * (대표님이 여러 상품을 한 번에 보내는 경우가 실제 사용 패턴)
+ */
+export function parseMessage(text: string): Parsed[] {
+  const norm = normalizeLinks(text);
+  const globalRe = new RegExp(COUPANG_RE.source, "gi");
+  const urls = [...new Set(norm.match(globalRe) ?? [])];
+  if (!urls.length) return [];
 
   let category = "";
   let keywords = "";
-  const nameLines: string[] = [];
+  const bodyLines: string[] = [];
 
-  for (const line of text.split(/\r?\n/)) {
+  for (const line of norm.split(/\r?\n/)) {
     const l = line.trim();
     if (!l) continue;
     const cat = l.match(/^(?:카테고리|category)\s*[:：]\s*(.+)$/i);
@@ -125,21 +164,24 @@ export function parseMessage(text: string): Parsed | null {
       keywords = kw[1].trim();
       continue;
     }
-    // 링크가 들어간 줄에서 링크만 걷어내고 남는 글자는 상품명 후보로 쓴다
-    const rest = l.replace(COUPANG_RE, "").trim();
-    if (rest) nameLines.push(rest);
+    bodyLines.push(l);
   }
 
-  const name = nameLines.join(" ").replace(/\s+/g, " ").trim();
-  if (!name) return null; // 상품명을 못 찾으면 등록하지 않는다
+  // 링크 1개 → 메시지 전체가 상품명 (쿠팡 앱 공유 형식)
+  if (urls.length === 1) {
+    const p = parseOne(bodyLines, urls[0], category, keywords, text);
+    return p ? [p] : [];
+  }
 
-  return {
-    name,
-    url,
-    category: category || "생활",
-    keywords: keywords || autoKeywords(name),
-    raw: text,
-  };
+  // 링크 여러 개 → 줄 단위로 쪼갠다. 카테고리·키워드 지정은 전체에 공통 적용.
+  const out: Parsed[] = [];
+  for (const line of bodyLines) {
+    const found = [...new Set(line.match(globalRe) ?? [])];
+    if (found.length !== 1) continue; // 링크가 없거나 한 줄에 여러 개면 판단 불가 → 건너뜀
+    const p = parseOne([line], found[0], category, keywords, line);
+    if (p) out.push(p);
+  }
+  return out;
 }
 
 // ── 등록 ───────────────────────────────────────
@@ -214,17 +256,28 @@ async function main() {
     process.exit(1);
   }
 
-  const { texts, lastId } = await fetchUpdates();
-  console.log(`새 메시지 ${texts.length}건`);
+  // --stdin: 텔레그램 대신 붙여넣은 텍스트로 처리 (대화창으로 받은 목록 등)
+  let texts: string[];
+  let lastId: number | null = null;
+  if (STDIN) {
+    texts = [fs.readFileSync(0, "utf-8")];
+    console.log("입력: 표준입력");
+  } else {
+    const r = await fetchUpdates();
+    texts = r.texts;
+    lastId = r.lastId;
+    console.log(`새 메시지 ${texts.length}건`);
+  }
 
   const parsed: Parsed[] = [];
   let ignored = 0;
   for (const t of texts) {
-    const p = parseMessage(t);
-    if (p) parsed.push(p);
+    const ps = parseMessage(t);
+    if (ps.length) parsed.push(...ps);
     else ignored++;
   }
   if (ignored) console.log(`  (쿠팡 링크나 상품명이 없어 무시: ${ignored}건)`);
+  console.log(`상품 ${parsed.length}건 인식`);
 
   if (!parsed.length) {
     console.log("등록할 상품이 없습니다.");

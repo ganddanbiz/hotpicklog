@@ -232,5 +232,50 @@
     "keywords": "대나무젓가락,야마치쿠,일본젓가락,천연젓가락,스퀘어젓가락",
     "used": true,
     "slug": "product-023"
+  },
+  {
+    "id": 24,
+    "name": "유한락스 멀티액션 곰팡이제거제, 510ml, 3개",
+    "url": "https://link.coupang.com/a/fQ5Vle6hcy",
+    "category": "생활",
+    "keywords": "곰팡이제거제,유한락스,욕실곰팡이,곰팡이제거,욕실청소",
+    "used": false,
+    "slug": "product-024"
+  },
+  {
+    "id": 25,
+    "name": "휴앤봇 1등급 업소용 제습기 대용량 공업용 산업용 창고 공장 70리터 HNB-DH70L",
+    "url": "https://link.coupang.com/a/fQ57i6jU4G",
+    "category": "가전",
+    "keywords": "제습기,업소용제습기,대용량제습기,산업용제습기,창고제습기",
+    "used": false,
+    "slug": "product-025"
+  },
+  {
+    "id": 26,
+    "name": "홈싹 프리미엄 빨아쓰는 규조토 발매트",
+    "url": "https://link.coupang.com/a/fQ6gD0Q07w",
+    "category": "생활",
+    "keywords": "발매트,규조토발매트,욕실발매트,빨아쓰는발매트,욕실용품",
+    "used": false,
+    "slug": "product-026"
+  },
+  {
+    "id": 27,
+    "name": "쟈니베어 논슬립 프리미엄EVA 물빠짐 욕실화",
+    "url": "https://link.coupang.com/a/fQ6j9B5OlU",
+    "category": "생활",
+    "keywords": "욕실화,논슬립욕실화,물빠짐욕실화,욕실슬리퍼,욕실용품",
+    "used": false,
+    "slug": "product-027"
+  },
+  {
+    "id": 28,
+    "name": "코멧 국내생산 BPA FREE 클리어 직사각 밀폐용기, 4개, 600ml",
+    "url": "https://link.coupang.com/a/fQ6pS3ExdQ",
+    "category": "주방",
+    "keywords": "밀폐용기,직사각밀폐용기,반찬통,BPA프리용기,주방수납",
+    "used": false,
+    "slug": "product-028"
   }
 ]
