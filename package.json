@@ -11,7 +11,8 @@
     "product:add": "tsx scripts/add-product.ts",
     "product:list": "tsx scripts/add-product.ts 목록",
     "product:tag": "tsx scripts/add-product.ts 태그",
-    "product:pick": "tsx scripts/pick-product.ts"
+    "product:pick": "tsx scripts/pick-product.ts",
+    "product:inbox": "tsx scripts/product-inbox.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
