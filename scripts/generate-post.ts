@@ -52,6 +52,7 @@ const CATEGORY_QUERY: Record<string, string> = {
   // 상품 카테고리
   가전:    "home appliance electronics product",
   생활:    "home living product lifestyle",
+  주방:    "kitchen cooking utensil product",
   식품:    "food healthy nutrition product",
   패션:    "fashion clothing style product",
   뷰티:    "beauty skincare cosmetics product",
