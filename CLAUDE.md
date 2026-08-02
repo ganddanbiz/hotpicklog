@@ -70,7 +70,7 @@ npm run product:inbox -- --stdin  # 텔레그램 대신 붙여넣은 텍스트�
 | 워크플로 | 주기 | 내용 |
 |---|---|---|
 | `weekly-product-pick.yml` | 일요일 KST 08:00 | 이번 주 뜨는 상품 후보 5개 → 텔레그램 |
-| `telegram-inbox.yml` | 매일 KST 08:30 | 텔레그램으로 받은 상품 등록·푸시 + 재고 3개 미만이면 경고 |
+| `telegram-inbox.yml` | 매일 KST 06:00 | 텔레그램으로 받은 상품 등록·푸시 + 재고 3개 미만이면 경고 |
 
 ### 대표님 흐름
 쿠팡 앱에서 **공유 → 텔레그램 → @Tugmanbot**. 상품명과 링크가 함께 있으면 자동 등록된다.
@@ -86,6 +86,10 @@ npm run product:inbox -- --stdin  # 텔레그램 대신 붙여넣은 텍스트�
   (철 지난 키워드는 `--from/--to`로 제철 구간을 지정해야 판단이 된다)
 - ⚠️ `scripts/.telegram-offset`은 **커밋 대상이다.** CI는 실행마다 새 작업공간이라 이게 없으면
   매일 같은 메시지를 다시 읽어 같은 알림을 반복한다.
+- ⚠️ **GitHub 예약은 최대 1시간 넘게 밀린다** (2026-08-02 실측: 23:30 예약 → 01:07 실행, 97분).
+  그래서 inbox를 발행 3시간 전(06:00)에 둔다. `daily-post.yml`과 `telegram-inbox.yml`은 둘 다
+  products.json을 커밋하므로 `concurrency: products-json`으로 묶고 push는 rebase 재시도를 붙였다.
+  **products.json을 쓰는 워크플로를 새로 만들면 같은 그룹에 넣을 것.**
 
 ## 쿠팡 파트너스 설정
 - **고정 링크**: `https://link.coupang.com/a/eJzg1eIyu4` (모든 포스팅 공통)

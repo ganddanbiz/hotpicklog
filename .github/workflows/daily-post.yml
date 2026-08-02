@@ -5,6 +5,11 @@ on:
     - cron: '0 0 * * 2,4,6'    # UTC 00:00 = KST 09:00, 화·목·토 주3회 (2026-07-14 토큰 절약 감축)
   workflow_dispatch:          # 수동 실행 가능
 
+# telegram-inbox와 같은 그룹. 둘 다 products.json을 커밋하므로 겹치면 푸시가 깨진다
+concurrency:
+  group: products-json
+  cancel-in-progress: false
+
 jobs:
   generate:
     runs-on: ubuntu-latest
@@ -46,5 +51,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add scripts/products.json
-          git diff --cached --quiet || git commit -m "chore: mark published product as used [skip ci]"
-          git push
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+          else
+            git commit -m "chore: mark published product as used [skip ci]"
+            # 사이에 inbox가 상품을 등록했으면 non-fast-forward로 막힌다 → rebase 후 재시도
+            git push || { git pull --rebase origin main && git push; }
+          fi
