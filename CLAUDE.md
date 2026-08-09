@@ -145,7 +145,9 @@ npm run product:inbox -- --stdin  # 텔레그램 대신 붙여넣은 텍스트�
 ## GitHub 저장소 및 배포
 - **GitHub:** `ganddanbiz/hotpicklog`
 - **Vercel 프로젝트:** `hotpicklog`
-- **자동 발행:** 매일 KST 10:00 (`0 1 * * *` UTC, GitHub Actions)
+- **자동 발행:** 이틀에 한 번, 홀숫날 KST 09:00 (`0 0 */2 * *` UTC, GitHub Actions)
+  - 2026-08-09 변경. 그 전에는 화·목·토 주3회(`0 0 * * 2,4,6`)였다.
+  - 31일까지 있는 달만 31일→1일이 연달아 발행된다 (cron이 요일이 아닌 날짜 기준이라 생기는 경계).
 - **workflow_dispatch:** 텔레그램 `득템로그 발행` 명령으로 수동 트리거 가능
 
 ## 현재 발행 현황

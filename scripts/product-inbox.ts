@@ -41,7 +41,7 @@ const PUSH = args.includes("--push");
 const STDIN = args.includes("--stdin");
 
 const LOW_STOCK = 3; // 대기중인 상품이 이 개수 미만이면 재고 경고 (설계서 기준)
-const PUBLISH_PER_WEEK = 3; // 화·목·토 주 3회 발행 → 남은 주수 계산용
+const PUBLISH_PER_WEEK = 3.5; // 이틀에 한 번 발행(홀숫날) → 남은 주수 계산용
 
 const OFFSET_FILE = path.resolve(process.cwd(), "scripts/.telegram-offset");
 const COUPANG_RE = /https?:\/\/(?:link\.coupang\.com\/a\/[A-Za-z0-9]+|(?:www\.)?coupang\.com\/vp\/products\/[^\s]+)/i;
