@@ -13,45 +13,68 @@ interface Props {
   variant?: "banner" | "square" | "leaderboard";
 }
 
+const G_SRC = "https://ads-partners.coupang.com/g.js";
+
 export default function CoupangAd({ variant = "banner" }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  const done = useRef(false);
 
   useEffect(() => {
-    if (variant === "leaderboard" || done.current || !ref.current) return;
-    done.current = true;
+    if (variant === "leaderboard") return;
+    const el = ref.current;
+    if (!el) return;
 
     const id = variant === "square" ? 970543 : 970645;
     const width = variant === "square" ? "300" : "680";
     const height = variant === "square" ? "300" : "140";
 
+    let cancelled = false;
+
     const initAd = () => {
-      if (!ref.current) return;
-      const s = document.createElement("script");
-      s.text = `
-        try {
-          new PartnersCoupang.G({
-            id: ${id},
-            template: "carousel",
-            trackingCode: "AF9787280",
-            width: "${width}",
-            height: "${height}",
-            tsource: ""
-          });
-        } catch(e) {}
-      `;
-      ref.current.appendChild(s);
+      // 언마운트 후 늦게 도착한 onload가 죽은 노드에 그리는 것을 막는다.
+      if (cancelled || !el.isConnected || el.childElementCount > 0) return;
+      if (!window.PartnersCoupang) return;
+      try {
+        new window.PartnersCoupang.G({
+          id,
+          template: "carousel",
+          trackingCode: "AF9787280",
+          width,
+          height,
+          tsource: "",
+          // ⚠️ container를 넘기지 않으면 g.js가 "문서의 마지막 <script> 옆"이라는
+          //    폴백 경로로 광고를 꽂는다. Next.js는 그 자리가 body 끝(푸터 뒤)이라
+          //    광고가 푸터 아래에 붙고, 폭 제약도 안 먹고, 페이지 이동마다 쌓인다.
+          container: el,
+        });
+      } catch {
+        // 광고 실패가 본문 렌더링을 막지 않게 한다.
+      }
     };
 
     if (window.PartnersCoupang) {
       initAd();
-    } else {
-      const gScript = document.createElement("script");
-      gScript.src = "https://ads-partners.coupang.com/g.js";
-      gScript.async = true;
-      gScript.onload = initAd;
-      document.head.appendChild(gScript);
+      return () => {
+        cancelled = true;
+        el.innerHTML = "";
+      };
     }
+
+    // g.js는 문서당 한 번만 — 마운트마다 <head>에 새로 붙이지 않는다.
+    let s = document.querySelector<HTMLScriptElement>(`script[src="${G_SRC}"]`);
+    if (!s) {
+      s = document.createElement("script");
+      s.src = G_SRC;
+      s.async = true;
+      document.head.appendChild(s);
+    }
+    s.addEventListener("load", initAd);
+    const script = s;
+
+    return () => {
+      cancelled = true;
+      script.removeEventListener("load", initAd);
+      el.innerHTML = "";
+    };
   }, [variant]);
 
   if (variant === "leaderboard") {
