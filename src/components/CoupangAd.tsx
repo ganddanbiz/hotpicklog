@@ -89,7 +89,6 @@ export default function CoupangAd({ variant = "banner" }: Props) {
         }}>
           이 포스팅은 쿠팡 파트너스 활동의 일환으로 수수료를 제공받습니다.
         </p>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <a
           href="https://link.coupang.com/a/eVzgl7H5pY"
           target="_blank"
@@ -97,6 +96,7 @@ export default function CoupangAd({ variant = "banner" }: Props) {
           referrerPolicy="unsafe-url"
           style={{ display: "block" }}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="https://ads-partners.coupang.com/banners/1000915?trackingCode=AF9787280&subId=&traceId=V0-301-969b06e95b87326d-I1000915&w=728&h=90"
             alt=""
