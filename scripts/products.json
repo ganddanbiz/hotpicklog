@@ -421,5 +421,50 @@
     "keywords": "정수필터샤워기,샤워기헤드,코멧샤워기,녹물제거샤워기,샤워기필터",
     "used": true,
     "slug": "product-044"
+  },
+  {
+    "id": 45,
+    "name": "HanilMedical 탄소열선 고급 전기요 라이프 패턴",
+    "url": "https://link.coupang.com/a/g5hKpi7Xqu",
+    "category": "생활",
+    "keywords": "HanilMedical,탄소열선,고급,전기요,라이프",
+    "used": false,
+    "slug": "product-045"
+  },
+  {
+    "id": 46,
+    "name": "코멧 홈 양면 극세사 솔리드 차렵이불",
+    "url": "https://link.coupang.com/a/g5hO7XycFg",
+    "category": "생활",
+    "keywords": "코멧,양면,극세사,솔리드,차렵이불",
+    "used": false,
+    "slug": "product-046"
+  },
+  {
+    "id": 47,
+    "name": "홈플래닛 초음파 가습기 4L",
+    "url": "https://link.coupang.com/a/g5iaRcUjcq",
+    "category": "생활",
+    "keywords": "홈플래닛,초음파,가습기",
+    "used": false,
+    "slug": "product-047"
+  },
+  {
+    "id": 48,
+    "name": "코멧 포켓형 손난로 핫팩 100g, 30개",
+    "url": "https://link.coupang.com/a/g5iecgJmhw",
+    "category": "생활",
+    "keywords": "코멧,포켓형,손난로,핫팩",
+    "used": false,
+    "slug": "product-048"
+  },
+  {
+    "id": 49,
+    "name": "코멧 순백 3겹 라벤더 바닐라 롤화장지",
+    "url": "https://link.coupang.com/a/g5ig0gqgiy",
+    "category": "생활",
+    "keywords": "코멧,순백,3겹,라벤더,바닐라",
+    "used": false,
+    "slug": "product-049"
   }
 ]
