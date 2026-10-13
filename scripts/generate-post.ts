@@ -6,11 +6,13 @@
  * 동작 순서:
  *  1. products.json에 미사용 상품이 있으면 → 상품 리뷰 포스팅 생성 (쿠팡 파트너스 링크 포함)
  *  2. 상품이 없으면 → topics.ts 기반 일반 포스팅 생성
+ *  3. 주제도 소진되면 → 자동 주제 모드: 형제 채널 최근 글 + 계절로 구매 가이드 주제 추론 (auto-topic.ts)
  */
 
 import Anthropic from "@anthropic-ai/sdk";
 import { Pool } from "pg";
 import { allTopics, Topic } from "./topics";
+import { inferAutoTopic, AUTO_GUIDE_RULES } from "./auto-topic";
 import { loadProducts, saveProducts, Product } from "./add-product";
 import * as dotenv from "dotenv";
 import * as path from "path";
@@ -645,19 +647,21 @@ async function main() {
     } else {
       // ② 상품 없으면 일반 주제 포스팅
       writeLog("📝 일반 주제 모드 (등록된 상품 없음)");
-      const topic = await getNextTopic();
+      // 주제까지 소진되면 발행을 멈추지 않고 자동 주제 모드로 넘어간다 (대표님 개입 없이 운영)
+      const topic = (await getNextTopic()) ?? (await inferAutoTopic(anthropic, pool, writeLog));
 
       if (!topic) {
-        writeLog("✅ 모든 주제(130개)가 발행 완료됐습니다!");
+        writeLog("❌ 상품·주제 소진 + 자동 주제 추론 실패 — 발행 중단");
         await pool.end();
-        return;
+        process.exit(1);
       }
+      const isAuto = topic.slug.startsWith("auto-");
 
       writeLog(`📝 주제 선택: [${topic.level}] ${topic.index}/130 - ${topic.title}`);
 
       writeLog("🤖 Claude로 글 생성 중...");
       const recentTitles = await getRecentTitles(7);
-      const prompt = buildPrompt(topic, recentTitles);
+      const prompt = buildPrompt(topic, recentTitles) + (isAuto ? AUTO_GUIDE_RULES : "");
       const result = await anthropic.messages.create({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 4096,
@@ -669,7 +673,9 @@ async function main() {
 
       // 일반 주제 글은 Unsplash 키가 없을 수 있어 네이버 이미지를 우선 사용, 없으면 Unsplash 폴백.
       writeLog("🖼️  이미지 가져오는 중...");
-      const naverImages = await fetchNaverImages(topic.keywords || topic.title, 3);
+      // 자동 주제는 keywords 첫 항목이 상품명 — 이미지 검색은 그것만 쓴다
+      const imageQuery = isAuto ? topic.keywords.split(",")[0].trim() : topic.keywords || topic.title;
+      const naverImages = await fetchNaverImages(imageQuery, 3);
       let thumbnail: { url: string } | null = null;
       let bodyWithImages: string;
       if (naverImages.length > 0) {
@@ -690,7 +696,7 @@ async function main() {
         slug: topic.slug,
         category: topic.category,
         keywords: topic.keywords,
-        meta_description: topic.meta_description,
+        meta_description: topic.meta_description || buildMetaDescription(content, topic.title),
       };
 
       // 이미지 없이 발행 방지: 썸네일과 본문 이미지가 모두 있어야 발행한다.
