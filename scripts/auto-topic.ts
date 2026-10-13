@@ -17,7 +17,7 @@ import type { Topic } from "./topics";
 export const MENU_CATEGORIES = ["식품", "가전", "생활", "패션", "뷰티", "스포츠", "육아", "반려동물", "상품리뷰"];
 
 const SIGNAL_SOURCES: { name: string; url: string; pick: (j: any) => string[] }[] = [
-  { name: "단단한50(50대 재테크·건강)", url: "https://dandan50.vercel.app/api/posts?limit=6", pick: (j) => (j.posts || []).map((p: any) => p.title) },
+  { name: "단단한50(50대 재테크·건강)", url: "https://dandan50-blog.vercel.app/api/posts?limit=6", pick: (j) => (j.posts || []).map((p: any) => p.title) },
   { name: "지구촌TMI(세계 상식)", url: "https://jigu-tmi-blog.vercel.app/api/posts?limit=4", pick: (j) => (j.posts || []).map((p: any) => p.title) },
   { name: "소재타임스(소재·반도체 뉴스)", url: "https://raw.githubusercontent.com/tugman77/materials-news/main/articles.json", pick: (j) => (j.articles || []).map((a: any) => a.title) },
   { name: "시그널코리아(산업 공급망)", url: "https://raw.githubusercontent.com/tugman77/the-signal-korea/main/articles.json", pick: (j) => (j.articles || []).map((a: any) => a.title) },
