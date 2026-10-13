@@ -345,9 +345,28 @@ function injectAffiliateButton(html: string, product: Product): string {
 }
 
 // ── 다음 미사용 상품 가져오기 ─────────────────────
+// ── 카테고리 정규화 ───────────────────────────────
+// 홈 메뉴 키(src/app/page.tsx CATEGORIES)에 없는 값으로 저장하면 카테고리 필터에서 글이 사라진다.
+// (2026-10-13 컨트롤타워 점검: 주방·쇼핑정보·패션잡화·생활용품 21건이 메뉴에서 안 보였음)
+const CATEGORY_ALIAS: Record<string, string> = {
+  주방: "생활",
+  생활용품: "생활",
+  패션잡화: "패션",
+  쇼핑정보: "상품리뷰",
+};
+function normalizeCategory(category: string): string {
+  return CATEGORY_ALIAS[category] ?? category;
+}
+
+// 최근 글과 다른 카테고리 상품을 우선 고른다 — 같은 품목군(수납함 등) 연속 편중 방지
 async function getNextProduct(): Promise<Product | null> {
-  const products = loadProducts();
-  return products.find((p) => !p.used) ?? null;
+  const unused = loadProducts().filter((p) => !p.used);
+  if (unused.length === 0) return null;
+  const { rows } = await pool.query(
+    "SELECT category FROM posts WHERE status = 'published' ORDER BY published_at DESC LIMIT 2"
+  );
+  const recent = new Set(rows.map((r: { category: string }) => normalizeCategory(r.category)));
+  return unused.find((p) => !recent.has(normalizeCategory(p.category))) ?? unused[0];
 }
 
 // ── 상품을 사용 완료로 표시 ───────────────────────
@@ -390,7 +409,7 @@ function buildProductPrompt(product: Product): string {
   return `당신은 "${siteName}" 블로그의 상품 리뷰 작가입니다.
 네이버 블로그 감성으로 ${product.name} 리뷰를 작성해주세요.
 
-상품명: ${product.name}
+상품명(쿠팡 원문): ${product.name}
 카테고리: ${product.category}
 ${product.keywords ? `키워드: ${product.keywords}` : ""}
 ${product.referenceUrl ? `참조 영상: ${product.referenceUrl} (이 유튜브 영상을 참고해 실제 사용 후기처럼 생생하게 작성해주세요)` : ""}
@@ -399,12 +418,18 @@ ${product.referenceUrl ? `참조 영상: ${product.referenceUrl} (이 유튜브 
 첫 줄에 반드시 아래 형식으로 제목을 출력하고, 빈 줄 하나 후 HTML 본문을 시작하세요.
 TITLE: <여기에 블로그 제목>
 
+[상품명 표기 규칙]
+- 본문·제목에서는 쿠팡 원문 상품명을 그대로 쓰지 말고 "브랜드 + 핵심 품목" 15자 내외로 줄여 쓴다
+  (예: "대용량 수납함 접이식 패브릭 생활 수납함 스타일리쉬한 이불 옷 정리함" → "패브릭 접이식 수납함")
+- [겨울 특가], [1+1] 같은 판매 태그와 과장 수식어는 쓰지 않는다
+
 [제목 작성 규칙]
 - 이모지 1~2개 포함
-- 호기심·후킹 유발 (예: "진짜야?", "써봤더니...", "솔직히 말하면", "이건 꼭 봐야 해")
-- 30자 이내로 짧고 강렬하게
-- 좋은 예: "에어팟 프로 3 써봤는데... 이건 진짜야 🎧", "고기만두 끝판왕 등장?! 솔직 후기 🥟"
-- 나쁜 예: "Apple 2025 에어팟 프로 3 USB-C 블루투스 이어폰 상세 리뷰 | 솔직한 사용 후기"
+- 호기심 유발은 하되 효과를 단정하지 않는다 (예: "써봤더니...", "솔직히 말하면", "장단점 정리")
+- 금지: "끝!", "끝판왕", "달라진다", "이건 진짜야", "인생템"처럼 효과를 보장·단정하는 표현
+- 30자 이내
+- 좋은 예: "패브릭 수납함 한 달 써본 솔직 후기 📦", "고기만두 비교해 먹어봤어요, 장단점 정리 🥟"
+- 나쁜 예: "옷장 정리 이걸로 끝! 인생 수납함 🔥", "Apple 2025 에어팟 프로 3 USB-C 블루투스 이어폰 상세 리뷰"
 
 [문체 규칙 - 반드시 지킬 것]
 1. 문장은 짧게, 1~2줄마다 줄바꿈 (<br> 또는 새 <p> 태그)
@@ -418,7 +443,7 @@ TITLE: <여기에 블로그 제목>
 [구성 - 이 순서대로]
 ① 공감 후킹 오프닝 (2~3문장)
 ② 상품 핵심 특징 3가지 (이모지 + 짧은 설명)
-③ 직접 써본 솔직 후기 (장점·단점 나눠서)
+③ 직접 써본 솔직 후기 (장점·단점 나눠서 — 단점은 반드시 1개 이상 구체적으로)
 ④ 이런 분께 추천해요 (bullet 3가지)
 ⑤ 가격 대비 가치 한줄 총평
 ⑥ FAQ 3개 (Q&A 형식)
@@ -480,6 +505,17 @@ function extractTitle(raw: string): { title: string; body: string } {
 }
 
 // ── HTML 정리 ──────────────────────────────────────
+function buildMetaDescription(html: string, fallback: string): string {
+  const text = html
+    .replace(/<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&[a-z]+;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return fallback;
+  return text.length > 140 ? text.slice(0, 137).replace(/\s\S*$/, "") + "…" : text;
+}
+
 function cleanHtml(raw: string): string {
   return raw
     .replace(/```html\s*/gi, "")
@@ -511,7 +547,7 @@ async function savePost(post: PostData, content: string, thumbnailUrl: string | 
       post.title,
       content,
       post.slug,
-      post.category,
+      normalizeCategory(post.category),
       thumbnailUrl,
       post.meta_description,
       post.keywords,
@@ -583,7 +619,8 @@ async function main() {
         slug: product.slug,
         category: product.category,
         keywords: product.keywords || product.name,
-        meta_description: `${product.name}의 특징, 장단점, 가격 분석까지 꼼꼼하게 정리했습니다. 구매 전 꼭 확인하세요.`,
+        // 모든 글이 같은 요약문이면 검색 결과에서 구분이 안 된다 — 본문 첫 문단에서 뽑는다
+        meta_description: buildMetaDescription(content, generatedTitle || product.name),
       };
 
       // 이미지 없이 발행 방지: 썸네일과 본문 이미지가 모두 있어야 발행한다.
