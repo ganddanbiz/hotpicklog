@@ -29,6 +29,7 @@ jobs:
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POST_STATUS: draft   # 검수관(컨트롤타워)이 검수 후 공개
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
@@ -42,6 +43,7 @@ jobs:
         if: steps.attempt1.outcome == 'failure'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POST_STATUS: draft   # 검수관(컨트롤타워)이 검수 후 공개
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}

@@ -539,11 +539,14 @@ interface PostData {
   meta_description: string;
 }
 
+// 검수관 게이트(2026-10-14): 워크플로가 POST_STATUS=draft로 저장하면 컨트롤타워 검수관이 검수 후 공개한다. 로컬 수동 실행은 바로 공개.
+const POST_STATUS = process.env.POST_STATUS === "draft" ? "draft" : "published";
+
 async function savePost(post: PostData, content: string, thumbnailUrl: string | null): Promise<number> {
   const { rows } = await pool.query(
     `INSERT INTO posts
       (title, content, slug, category, thumbnail_url, meta_description, keywords, status, published_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'published', NOW())
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
      RETURNING id`,
     [
       post.title,
@@ -553,6 +556,7 @@ async function savePost(post: PostData, content: string, thumbnailUrl: string | 
       thumbnailUrl,
       post.meta_description,
       post.keywords,
+      POST_STATUS,
     ]
   );
   return rows[0].id as number;
