@@ -384,9 +384,8 @@ body {
 /* ── Wing Banner ────────────────────────────────── */
 .wing-banner {
   position: fixed;
-  right: 1.25rem;
-  top: 50%;
-  transform: translateY(-50%);
+  left: calc(50% + 26rem + 1.25rem);  /* 본문 틀(52rem) 오른쪽 — 화면 끝·푸터 옆에 걸리지 않게 */
+  top: 7rem;
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
@@ -394,7 +393,7 @@ body {
   width: 9.5rem;
 }
 
-@media (max-width: 1399px) {
+@media (max-width: 1239px) {
   .wing-banner { display: none; }
 }
 
