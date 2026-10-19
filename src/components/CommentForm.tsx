@@ -89,7 +89,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
             placeholder="닉네임"
             maxLength={30}
             required
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c4462f]"
           />
         </div>
         <div className="flex-1">
@@ -99,7 +99,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
             onChange={(e) => setPassword(e.target.value)}
             placeholder="비밀번호 (삭제 시 필요)"
             required
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c4462f]"
           />
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
         maxLength={2000}
         required
         rows={3}
-        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#c4462f] resize-none"
       />
 
       {captchaRequired && (
@@ -128,7 +128,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
             <button
               type="button"
               onClick={() => setCaptchaToken("dev-test-token")}
-              className="mt-2 text-xs text-blue-600 underline"
+              className="mt-2 text-xs text-[#c4462f] underline"
             >
               [개발] 캡차 우회
             </button>
@@ -148,7 +148,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
         <button
           type="submit"
           disabled={submitting}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 bg-[#c4462f] text-white text-sm font-medium rounded-lg hover:bg-[#a83a26] min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {submitting ? "등록 중..." : "댓글 등록"}
         </button>

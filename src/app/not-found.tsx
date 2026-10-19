@@ -9,7 +9,7 @@ export default function NotFound() {
         <p className="text-gray-500 mb-8">요청하신 페이지가 존재하지 않거나 이동되었습니다.</p>
         <Link
           href="/"
-          className="inline-block px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
+          className="inline-block px-6 py-3 bg-[#c4462f] text-white rounded-xl font-medium hover:bg-[#a83a26] transition-colors"
         >
           홈으로 돌아가기
         </Link>

@@ -80,7 +80,7 @@ export default function CommentList({ postId, refreshKey }: CommentListProps) {
 
         return (
           <li key={comment.id} className="flex gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#233347] flex items-center justify-center text-white text-sm font-bold">
               {comment.nickname.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">

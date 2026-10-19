@@ -15,7 +15,7 @@ export default function WingBanner() {
           alignItems: "center",
           gap: "8px",
           padding: "16px 10px",
-          background: "linear-gradient(160deg, #e4003a 0%, #ff4d6d 100%)",
+          background: "var(--navy)",
           borderRadius: "12px",
           textDecoration: "none",
           textAlign: "center",
@@ -28,8 +28,8 @@ export default function WingBanner() {
         <span style={{
           display: "block",
           padding: "5px 12px",
-          background: "#fff",
-          color: "#e4003a",
+          background: "var(--coral)",
+          color: "var(--navy)",
           fontSize: "0.72rem",
           fontWeight: 700,
           borderRadius: "6px",
@@ -39,7 +39,7 @@ export default function WingBanner() {
       </a>
       <p style={{
         fontSize: "0.6rem",
-        color: "#999",
+        color: "var(--ink-muted)",
         textAlign: "center",
         lineHeight: 1.4,
         margin: 0,

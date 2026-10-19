@@ -3,7 +3,6 @@ import { Noto_Sans_KR } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import Footer from "@/components/Footer";
-import WingBanner from "@/components/WingBanner";
 
 const notoSansKR = Noto_Sans_KR({
   subsets: ["latin"],
@@ -24,7 +23,7 @@ export const metadata: Metadata = {
     template: `%s | ${siteName}`,
     default: siteName,
   },
-  description: `AI가 매일 글을 쓰는 ${siteName}`,
+  description: "잘 고르고, 기분 좋게 득템하다 — 사기 전에 알아두면 좋은 구매 기준과 요즘 눈에 띄는 생활 물건을 정리하는 쇼핑 매거진",
   openGraph: {
     type: "website",
     siteName,
@@ -58,7 +57,6 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col antialiased">
         {children}
         <Footer />
-        <WingBanner />
         {adsenseClient && (
           <Script
             async

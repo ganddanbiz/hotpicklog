@@ -30,6 +30,9 @@ export default function AdBanner({ slot, format = "auto", className }: AdBannerP
     }
   }, [isDev, clientId, slot]);
 
+  // 운영에서 애드센스가 설정되지 않았으면 아무것도 그리지 않는다 (방문자에게 빈 점선 박스가 보이던 문제)
+  if (!isDev && (!clientId || !slot)) return null;
+
   if (isDev || !clientId || !slot) {
     return (
       <div

@@ -16,7 +16,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
   };
 
   return (
-    <section className="bg-white rounded-xl shadow-sm p-6">
+    <section className="dt-comments bg-white rounded-xl p-6">
       <h2 className="text-lg font-bold text-gray-900 mb-6">댓글</h2>
 
       <div className="mb-8">

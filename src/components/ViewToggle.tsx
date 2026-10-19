@@ -27,7 +27,7 @@ export default function ViewToggle({ currentView }: ViewToggleProps) {
     localStorage.setItem("preferred-view", view);
     const params = new URLSearchParams(searchParams.toString());
     params.set("view", view);
-    params.delete("page");
+    if (params.has("page")) params.set("page", "1"); // 전체 목록(?page=)에서 홈 매거진으로 튕기지 않게
     router.push(`/?${params.toString()}`);
   };
 
