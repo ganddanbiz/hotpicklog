@@ -87,6 +87,13 @@ const FORCED_SEASON = seasonArg ? (seasonArg.split("=")[1] as Season) : null;
 const fromArg = args.find((a) => a.startsWith("--from="))?.split("=")[1];
 const toArg = args.find((a) => a.startsWith("--to="))?.split("=")[1];
 
+const NEXT_SEASON: Record<Exclude<Season, "all">, Season> = {
+  spring: "summer",
+  summer: "fall",
+  fall: "winter",
+  winter: "spring",
+};
+
 // ── 유틸 ──────────────────────────────────────
 const kstNow = () => new Date(Date.now() + 9 * 60 * 60 * 1000);
 const ymd = (d: Date) => d.toISOString().slice(0, 10);
@@ -321,8 +328,8 @@ function buildMessage(list: Candidate[], season: Season): string {
     lines.push("");
   });
 
-  lines.push("👉 마음에 드는 상품을 쿠팡에서 고르신 뒤 파트너스 링크를 복사해");
-  lines.push('   npm run product:add "상품명" "링크" 생활 "키워드"');
+  lines.push("👉 마음에 드는 상품을 쿠팡 앱에서 공유 → @Tugmanbot 으로 보내면 다음 날 06시에 자동 등록됩니다.");
+  lines.push('   (수동: npm run product:add "상품명" "링크" 생활 "키워드")');
   return lines.join("\n");
 }
 
@@ -334,20 +341,32 @@ async function sendTelegram(text: string): Promise<void> {
     );
     return;
   }
-  const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: TG_CHAT,
-      text,
-      disable_web_page_preview: true,
-    }),
-  });
-  if (!res.ok) {
-    console.error(`❌ 텔레그램 전송 실패: ${res.status} ${await res.text()}`);
-  } else {
-    console.log("✅ 텔레그램 전송 완료");
+  // 주 1회 보고라 한 번 놓치면 한 주가 통째로 빈다 → 3회 재시도 후에도 실패하면 throw해서
+  // 워크플로를 실패로 떨어뜨린다(예전엔 로그만 찍고 성공으로 끝나 놓친 걸 알 수 없었다).
+  let lastErr = "";
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: TG_CHAT,
+          text,
+          disable_web_page_preview: true,
+        }),
+      });
+      if (res.ok) {
+        console.log("✅ 텔레그램 전송 완료");
+        return;
+      }
+      lastErr = `${res.status} ${await res.text()}`;
+    } catch (e) {
+      lastErr = String(e);
+    }
+    console.error(`❌ 텔레그램 전송 실패(${attempt}/3): ${lastErr}`);
+    if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 5000));
   }
+  throw new Error(`텔레그램 전송 3회 실패: ${lastErr}`);
 }
 
 // ── 진단 모드: 풀 전체가 데이터랩에 제대로 잡히는지 점검 ──
@@ -397,9 +416,22 @@ async function main() {
   if (AUDIT) return runAudit();
 
   const season = FORCED_SEASON ?? seasonForMonth(kstNow().getMonth() + 1);
-  const pool = pickCandidates(season);
+  let pool = pickCandidates(season);
+  // 발행 이력에 걸려 시즌 풀이 바닥나면(2026-10 가을 풀이 2개까지 줄었음) 다음 시즌을 미리 당겨 쓴다.
+  if (pool.length < TOP_N * 2 && season !== "all") {
+    const next = NEXT_SEASON[season];
+    const have = new Set(pool.map((k) => k.keyword));
+    const extra = pickCandidates(next).filter((k) => !have.has(k.keyword));
+    if (extra.length) {
+      console.log(`시즌 풀이 ${pool.length}개뿐이라 다음 시즌(${next}) 키워드 ${extra.length}개를 보충합니다.`);
+      pool = pool.concat(extra);
+    }
+  }
   if (!pool.length) {
-    console.log("후보 키워드가 없습니다. keyword-pool.ts를 확인하세요.");
+    await report(
+      "⚠️ [득템로그] 이번 주 상품 후보 없음\n" +
+        "키워드 풀이 발행 이력에 전부 걸렸습니다. scripts/keyword-pool.ts에 키워드를 보강해 주세요."
+    );
     return;
   }
   console.log(`시즌: ${season} | 후보 키워드 ${pool.length}개 트렌드 측정 중...`);
@@ -422,7 +454,11 @@ async function main() {
     .slice(0, TOP_N);
 
   if (!ranked.length) {
-    console.log("지수가 잡히는 후보가 없습니다. --audit 으로 풀을 점검하세요.");
+    await report(
+      "⚠️ [득템로그] 이번 주 상품 후보 없음\n" +
+        `측정한 키워드 ${measured.length}개 모두 데이터랩 지수가 잡히지 않았습니다. ` +
+        "npm run product:pick -- --audit 으로 카테고리를 점검해 주세요."
+    );
     return;
   }
 
@@ -436,7 +472,21 @@ async function main() {
   if (!DRY) await sendTelegram(msg);
 }
 
-main().catch((e) => {
+/** 후보가 없어도 "없다"는 사실은 반드시 텔레그램으로 알린다 — 조용히 끝나면 한 주를 놓친다. */
+async function report(text: string): Promise<void> {
+  console.log("\n" + text + "\n");
+  if (!DRY) await sendTelegram(text);
+}
+
+main().catch(async (e) => {
   console.error(e);
+  // 네이버 API 장애 등으로 죽어도 대표님이 알 수 있게 한 번은 보낸다.
+  // (텔레그램 자체가 실패한 경우엔 워크플로의 실패 알림 단계가 마지막 안전망)
+  if (!DRY && !String(e).includes("텔레그램 전송")) {
+    await sendTelegram(
+      `❌ [득템로그] 이번 주 상품 후보 선정 실패\n${String(e).slice(0, 500)}\n` +
+        "GitHub Actions → Weekly Product Candidate Pick 에서 다시 실행해 주세요."
+    ).catch(() => {});
+  }
   process.exit(1);
 });

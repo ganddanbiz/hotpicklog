@@ -76,6 +76,17 @@ export const KEYWORD_POOL: PoolKeyword[] = [
   { keyword: "극세사이불", seasons: ["fall", "winter"], category: CAT_INTERIOR },
   { keyword: "러그", seasons: ["fall", "winter"], category: CAT_INTERIOR },
   { keyword: "핫팩", seasons: ["fall", "winter"], category: CAT_SPORTS },
+  // 2026-10-26 보강 — 가을 풀이 발행 이력에 다 걸려 후보가 2개만 남았었다.
+  // 지수는 2025-11~2026-01 실측, 앵커=100.
+  { keyword: "문풍지", seasons: ["fall", "winter"] }, // 119
+  { keyword: "뽁뽁이", seasons: ["fall", "winter"] }, // 75
+  { keyword: "김장매트", seasons: ["fall"] }, // 53
+  { keyword: "김치통", seasons: ["fall", "all"] }, // 77
+  { keyword: "보온병", seasons: ["fall", "winter"] }, // 109
+  { keyword: "방한커튼", seasons: ["fall", "winter"], category: CAT_INTERIOR }, // 79
+  { keyword: "무릎담요", seasons: ["fall", "winter"], category: CAT_INTERIOR }, // 90
+  { keyword: "미니가습기", seasons: ["fall", "winter"], category: CAT_APPLIANCE }, // 53
+  { keyword: "온풍기", seasons: ["fall", "winter"], category: CAT_APPLIANCE }, // 85
 
   // ── 겨울 ──────────────────────────────
   { keyword: "전기장판", seasons: ["winter"], category: CAT_APPLIANCE },
@@ -83,7 +94,8 @@ export const KEYWORD_POOL: PoolKeyword[] = [
   { keyword: "히터", seasons: ["winter"], category: CAT_APPLIANCE },
   { keyword: "손난로", seasons: ["winter"], category: CAT_SPORTS },
   { keyword: "정전기방지", seasons: ["winter"] },
-  { keyword: "결로방지", seasons: ["winter"] },
+  { keyword: "라디에이터", seasons: ["winter"], category: CAT_APPLIANCE }, // 37
+  { keyword: "염화칼슘", seasons: ["winter"] }, // 31
 
   // ── 봄 ────────────────────────────────
   { keyword: "공기청정기필터", seasons: ["spring"], category: CAT_APPLIANCE },
@@ -115,6 +127,8 @@ export const KEYWORD_POOL: PoolKeyword[] = [
   // 2026-08-01 제거 — 어느 카테고리에서도 지수가 잡히지 않거나 중복:
   //   종량제봉투(0.4) · 청소세제(0.6→욕실세제로 대체) · 욕실곰팡이(곰팡이제거제와 중복)
   //   실내빨래건조대(1.6, 빨래건조대와 중복)
+  // 2026-10-26 제거 — 결로방지: 카테고리는 생활/건강이 맞지만(다른 4개 카테고리는 0.0~0.1)
+  //   제철 최고치도 4.5라 가을엔 MIN_HEAT(2) 밑으로 떨어져 탈락. 실제 검색어인 문풍지·뽁뽁이로 대체.
 ];
 
 /** 월(1~12)을 시즌으로 매핑 */
