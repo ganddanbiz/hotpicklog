@@ -12,7 +12,7 @@ import CoupangAd from "@/components/CoupangAd";
 import SiteHeader from "@/components/SiteHeader";
 import WingBanner from "@/components/WingBanner";
 import { EditorialCard } from "@/components/MagazineCards";
-import { categoryLabel, contentType, CONTENT_TYPE_LABEL, formatDate } from "@/lib/catalog";
+import { categoryLabel, contentType, CONTENT_TYPE_LABEL, formatDate, isoDate } from "@/lib/catalog";
 
 export const revalidate = 3600;
 
@@ -92,8 +92,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: post.meta_description || post.title,
       url: `${siteUrl}/posts/${post.slug}`,
       type: "article",
-      publishedTime: post.published_at || post.created_at,
-      modifiedTime: post.updated_at,
+      publishedTime: isoDate(post.published_at || post.created_at),
+      modifiedTime: isoDate(post.updated_at),
       ...(post.thumbnail_url && { images: [{ url: post.thumbnail_url }] }),
     },
     twitter: {
@@ -141,8 +141,8 @@ export default async function PostPage({ params }: Props) {
             <h1 className="dt-article__title">{post.title}</h1>
             {post.meta_description && <p className="dt-article__lead">{post.meta_description}</p>}
             <p className="dt-article__dates">
-              {published && <span>발행 <time dateTime={String(post.published_at)}>{published}</time></span>}
-              {updatedLater && <span>수정 <time dateTime={String(post.updated_at)}>{formatDate(post.updated_at, true)}</time></span>}
+              {published && <span>발행 <time dateTime={isoDate(post.published_at)}>{published}</time></span>}
+              {updatedLater && <span>수정 <time dateTime={isoDate(post.updated_at)}>{formatDate(post.updated_at, true)}</time></span>}
               <span>조회 {post.view_count.toLocaleString()}</span>
             </p>
           </header>

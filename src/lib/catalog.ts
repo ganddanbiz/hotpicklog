@@ -71,6 +71,13 @@ export function formatDate(d?: string | Date | null, long = false): string {
     : { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Seoul" });
 }
 
+// DB(pg)는 날짜를 Date 객체로 준다 — 메타태그·<time dateTime>에는 ISO 문자열로 넣는다
+export function isoDate(d?: string | Date | null): string | undefined {
+  if (!d) return undefined;
+  const t = new Date(d);
+  return isNaN(t.getTime()) ? undefined : t.toISOString();
+}
+
 // 본문 h2에서 이모지·태그를 걷어 "이 글에서 다루는 것" 목록을 만든다 (가이드 카드용)
 export function outline(html?: string | null, max = 3): string[] {
   if (!html) return [];

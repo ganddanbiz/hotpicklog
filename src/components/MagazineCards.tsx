@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Post } from "@/types";
 import { proxyUrl } from "@/lib/imageProxy";
-import { categoryLabel, contentType, CONTENT_TYPE_LABEL, formatDate, outline } from "@/lib/catalog";
+import { categoryLabel, contentType, CONTENT_TYPE_LABEL, formatDate, isoDate, outline } from "@/lib/catalog";
 
 type P = Partial<Post>;
 
@@ -42,7 +42,7 @@ export function FeaturedCard({ post }: { post: P }) {
         {post.meta_description && <p className="dt-featured__desc">{post.meta_description}</p>}
         <p className="dt-meta">
           <TypeTag slug={post.slug} />
-          <time dateTime={String(post.published_at ?? "")}>{formatDate(post.published_at, true)}</time>
+          <time dateTime={isoDate(post.published_at)}>{formatDate(post.published_at, true)}</time>
         </p>
         <span className="dt-featured__more">읽어보기 →</span>
       </div>
@@ -60,7 +60,7 @@ export function EditorialCard({ post, compact }: { post: P; compact?: boolean })
         {!compact && post.meta_description && <p className="dt-card__desc">{post.meta_description}</p>}
         <p className="dt-meta">
           <TypeTag slug={post.slug} />
-          <time dateTime={String(post.published_at ?? "")}>{formatDate(post.published_at)}</time>
+          <time dateTime={isoDate(post.published_at)}>{formatDate(post.published_at)}</time>
         </p>
       </div>
     </Link>
