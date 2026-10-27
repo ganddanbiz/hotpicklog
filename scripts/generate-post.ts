@@ -614,6 +614,9 @@ async function main() {
         }
       }
 
+      // 요약문은 쿠팡 배너를 붙이기 전에 뽑는다 (배너 문구가 검색 요약·홈 카드에 나오던 문제)
+      const metaDescription = buildMetaDescription(content, generatedTitle || product.name);
+
       // 쿠팡 파트너스 구매 버튼 삽입
       content = injectAffiliateButton(content, product);
 
@@ -626,7 +629,7 @@ async function main() {
         category: product.category,
         keywords: product.keywords || product.name,
         // 모든 글이 같은 요약문이면 검색 결과에서 구분이 안 된다 — 본문 첫 문단에서 뽑는다
-        meta_description: buildMetaDescription(content, generatedTitle || product.name),
+        meta_description: metaDescription,
       };
 
       // 이미지 없이 발행 방지: 썸네일과 본문 이미지가 모두 있어야 발행한다.
