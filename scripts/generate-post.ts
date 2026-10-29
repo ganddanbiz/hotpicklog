@@ -507,15 +507,34 @@ function extractTitle(raw: string): { title: string; body: string } {
 }
 
 // ── HTML 정리 ──────────────────────────────────────
+// 요약문은 본문 <p> 문단에서만 뽑는다. 쿠팡 배너·구매 버튼·제휴 고지·이미지·소제목은
+// 문단 단위로 걸러내므로, 배너를 붙인 뒤의 HTML이 들어와도 광고 문구가 섞이지 않는다.
+const AD_PARAGRAPH = /link\.coupang\.com|coupang\.com|rel="[^"]*sponsored|쿠팡 파트너스|수수료를 제공/;
+
 function buildMetaDescription(html: string, fallback: string): string {
-  const text = html
-    .replace(/<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/g, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&[a-z]+;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const paragraphs = [...html.matchAll(/<p[\s>][\s\S]*?<\/p>/gi)]
+    .map((m) => m[0])
+    .filter((p) => !AD_PARAGRAPH.test(p))
+    .map((p) => p
+      .replace(/^<p[^>]*>\s*(?:[^<]{0,4})?<strong>[^<]{1,40}<\/strong>\s*<br\s*\/?>/i, "") // "① 특징<br>" 같은 소제목 라벨
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, "&")
+      .replace(/&[a-z]+;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim())
+    .filter((t) => t.length >= 20);
+
+  let text = "";
+  for (const t of paragraphs) {
+    text = text ? `${text} ${t}` : t;
+    if (text.length >= 80) break;
+  }
   if (!text) return fallback;
-  return text.length > 140 ? text.slice(0, 137).replace(/\s\S*$/, "") + "…" : text;
+  if (text.length <= 140) return text;
+  // 140자 안에서 마지막 문장 끝(. ! ? 요/다 + 공백)에서 자르고, 없으면 어절 단위로 자른다
+  const head = text.slice(0, 140);
+  const end = Math.max(...[...head.matchAll(/[.!?](?=\s)|[요다](?=[.!?]?\s)/g)].map((m) => m.index! + 1), 0);
+  return end >= 60 ? head.slice(0, end).trim() : text.slice(0, 137).replace(/\s\S*$/, "") + "…";
 }
 
 function cleanHtml(raw: string): string {
