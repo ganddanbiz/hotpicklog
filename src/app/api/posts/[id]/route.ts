@@ -24,8 +24,6 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    await pool.query("UPDATE posts SET view_count = view_count + 1 WHERE id = $1", [postId]);
-
     return NextResponse.json(post);
   } catch (error) {
     console.error("GET /api/posts/[id] error:", error);

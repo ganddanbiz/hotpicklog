@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import pool from "@/lib/db";
 import { Post } from "@/types";
 import JsonLd from "@/components/JsonLd";
+import ViewCounter from "@/components/ViewCounter";
 import CommentSection from "@/components/CommentSection";
 import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/ShareButton";
@@ -110,7 +111,6 @@ export default async function PostPage({ params }: Props) {
   const post = await getPost(slug);
   if (!post) notFound();
 
-  await pool.query("UPDATE posts SET view_count = view_count + 1 WHERE id = $1", [post.id]);
   const [likeCount, { related, prev, next }] = await Promise.all([getLikeCount(post.id), getNeighbors(post)]);
 
   const type = contentType(post.slug);
@@ -123,6 +123,7 @@ export default async function PostPage({ params }: Props) {
   return (
     <>
       <JsonLd post={post} />
+      <ViewCounter postId={post.id} />
       <SiteHeader active={post.category} />
       <div className="dt-post-layout">
       <main className="dt-article-wrap">
