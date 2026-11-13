@@ -33,7 +33,7 @@ export async function GET() {
   <channel>
     <title>${esc(siteName)}</title>
     <link>${siteUrl}</link>
-    <description>${esc("직접 써보고 고른 생활 속 득템 상품 이야기")}</description>
+    <description>${esc("사기 전에 알아두면 좋은 구매 기준과 생활 물건 이야기")}</description>
     <language>ko</language>
     <lastBuildDate>${new Date(rows[0]?.published_at || Date.now()).toUTCString()}</lastBuildDate>
     <atom:link href="${siteUrl}/rss.xml" rel="self" type="application/rss+xml" />
