@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.aios.deuktem</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>/Users/kimjunsik/My World/Media/Blog/득템로그/scripts/run-local.sh</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>/Users/kimjunsik/My World/Media/Blog/득템로그</string>
+	<key>StandardOutPath</key>
+	<string>/Users/kimjunsik/Library/Logs/aios-deuktem.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/kimjunsik/Library/Logs/aios-deuktem.log</string>
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict><key>Day</key><integer>1</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>3</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>5</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>7</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>9</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>11</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>13</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>15</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>17</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>19</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>21</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>23</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>25</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>27</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>29</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+		<dict><key>Day</key><integer>31</integer><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
+	</array>
+	<key>ProcessType</key>
+	<string>Background</string>
+</dict>
+</plist>
