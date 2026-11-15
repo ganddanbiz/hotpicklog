@@ -43,3 +43,7 @@ next-env.d.ts
 
 # Claude Code 개인 설정
 .claude/settings.local.json
+
+# 맥미니 로컬 실행 산출물
+.generate.lock
+scripts/generate.log
