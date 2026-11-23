@@ -7,7 +7,7 @@
 | 도메인 | hotpicklog.com |
 | 언어 | 한국어 |
 | 주제 | 쿠팡 파트너스 상품 리뷰 + 재테크/경매 정보 |
-| AI 모델 | Claude Haiku (claude-haiku-4-5-20251001) |
+| AI 모델 | **Codex(ChatGPT 구독, `scripts/writer.ts`) 집필**, 실패 시 Claude Haiku 4.5가 대신 씀 (2026-11-23~, 되돌리기 `WRITER=claude`) · 검수는 컨트롤타워 검수관(Claude) |
 | 이미지 | 네이버 이미지 API (상품), Unsplash (폴백) |
 | DB | Neon PostgreSQL (us-east-1) |
 

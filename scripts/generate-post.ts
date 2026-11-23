@@ -10,6 +10,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { withCodexWriter } from "./writer";
 import { Pool } from "pg";
 import { allTopics, Topic } from "./topics";
 import { inferAutoTopic, AUTO_GUIDE_RULES } from "./auto-topic";
@@ -39,9 +40,10 @@ if (!oauthToken && !apiKey) {
   );
   process.exit(1);
 }
-const anthropic = oauthToken
+// 집필은 Codex(ChatGPT 구독)가 먼저, 실패하면 Claude가 대신 쓴다 (2026-11-23, scripts/writer.ts · WRITER=claude로 되돌림)
+const anthropic = withCodexWriter(oauthToken
   ? new Anthropic({ authToken: oauthToken })
-  : new Anthropic({ apiKey: apiKey! });
+  : new Anthropic({ apiKey: apiKey! }), "deuktem");
 
 // ── 카테고리 → Unsplash 검색어 맵 ────────────────
 const CATEGORY_QUERY: Record<string, string> = {
@@ -612,7 +614,7 @@ async function main() {
       writeLog(`🛒 상품 리뷰 모드: [${product.id}] ${product.name}`);
 
       // Claude로 상품 리뷰 생성
-      writeLog("🤖 Claude로 상품 리뷰 생성 중...");
+      writeLog("🤖 상품 글 생성 중 (Codex → 실패 시 Claude)...");
       const prompt = buildProductPrompt(product);
       const result = await anthropic.messages.create({
         model: "claude-haiku-4-5-20251001",
@@ -695,7 +697,7 @@ async function main() {
 
       writeLog(`📝 주제 선택: [${topic.level}] ${topic.index}/130 - ${topic.title}`);
 
-      writeLog("🤖 Claude로 글 생성 중...");
+      writeLog("🤖 글 생성 중 (Codex → 실패 시 Claude)...");
       const recentTitles = await getRecentTitles(7);
       const prompt = buildPrompt(topic, recentTitles) + (isAuto ? AUTO_GUIDE_RULES : "");
       const result = await anthropic.messages.create({
