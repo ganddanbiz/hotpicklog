@@ -292,7 +292,7 @@ body {
 
 .prose p {
   margin-bottom: 1.35em;
-  word-break: keep-all;
+  word-break: normal; /* 글자 단위 줄바꿈 — 오른쪽 끝을 고르게 (2026-11-24 대표님) */
 }
 
 .prose ul,
