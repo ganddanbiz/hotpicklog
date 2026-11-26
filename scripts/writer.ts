@@ -11,6 +11,22 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 
+// 토큰 A단계(2026-11-26): AI 호출 1번마다 ~/Library/Logs/aios-usage.jsonl에 한 줄 기록. 기록 실패는 무시(발행에 영향 없음).
+function aiSpawn(job: string, bin: string, args: string[], opts: any): any {
+  const t0 = Date.now();
+  const r: any = spawnSync(bin, args, opts);
+  try {
+    const err = String(r.stderr || "");
+    const tok = err.match(/tokens used\s*:?\s*([\d,]+)/i)?.[1];
+    fs.appendFileSync(path.join(os.homedir(), "Library/Logs/aios-usage.jsonl"), JSON.stringify({
+      t: new Date().toISOString(), who: "codex", job: `deuktem:${job}`, sec: Math.round((Date.now() - t0) / 1000),
+      ok: r.status === 0, limit: /usage limit|rate limit|quota/i.test(err), tokens: tok ? Number(tok.replace(/,/g, "")) : null,
+    }) + "\n");
+  } catch {}
+  return r;
+}
+
+
 type CreateFn = (params: any, ...rest: any[]) => Promise<any>;
 
 const OUTPUT_RULE =
@@ -43,7 +59,7 @@ function runCodex(prompt: string, tag: string): string {
   const args = ["--search", "exec", "--skip-git-repo-check", "--ephemeral", "-s", "read-only", "-C", work,
     "-c", 'model_reasoning_effort="medium"', "-o", outPath, "-"];
   const timeoutMin = Number(process.env.CODEX_TIMEOUT_MIN || 12);
-  const r = spawnSync(codexBin(), args, {
+  const r = aiSpawn("write", codexBin(), args, {
     input: prompt + OUTPUT_RULE, encoding: "utf8", timeout: timeoutMin * 60 * 1000, maxBuffer: 64 * 1024 * 1024,
     env: { ...process.env, PATH: `${path.join(os.homedir(), ".local/bin")}:/opt/homebrew/bin:${process.env.PATH || "/usr/bin:/bin"}`,
       OPENAI_API_KEY: "" }, // 구독 로그인만 쓴다
@@ -74,7 +90,16 @@ export function withCodexWriter<T extends { messages: { create: CreateFn } }>(cl
       return { content: [{ type: "text", text }], model: "codex-cli", role: "assistant", stop_reason: "end_turn" };
     } catch (e: any) {
       console.log(`⚠️  Codex 집필 실패 → Claude로 대신 씀: ${String(e?.message || e).slice(0, 200)}`);
-      return claudeCreate(params, ...rest);
+      const t1 = Date.now();
+      const res = await claudeCreate(params, ...rest);
+      try { // 토큰 A단계: Claude가 대신 쓴 경우도 기록
+        const u = res?.usage || {};
+        const tokens = (u.input_tokens || 0) + (u.output_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
+        fs.appendFileSync(path.join(os.homedir(), "Library/Logs/aios-usage.jsonl"), JSON.stringify({
+          t: new Date().toISOString(), who: "claude", job: `${tag}:write-fallback`, sec: Math.round((Date.now() - t1) / 1000),
+          ok: true, limit: false, tokens: tokens || null }) + "\n");
+      } catch {}
+      return res;
     }
   };
   return wrapped as T;
