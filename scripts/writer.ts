@@ -13,14 +13,28 @@ import * as path from "path";
 
 // 토큰 A단계(2026-11-26): AI 호출 1번마다 ~/Library/Logs/aios-usage.jsonl에 한 줄 기록. 기록 실패는 무시(발행에 영향 없음).
 function aiSpawn(job: string, bin: string, args: string[], opts: any): any {
+  // 토큰 C단계(2026-11-28): 오늘 Codex 한도 신호(~/Library/Logs/aios-limit.json)가 있으면 선택 작업(사진 판정·그림)은
+  // 부르지 않고 실패로 돌려준다 — 호출부는 원래 실패 경로(스톡 사진·사진 없음)로 간다. 집필은 그대로 시도한다.
+  const LIM = path.join(os.homedir(), "Library/Logs/aios-limit.json");
+  if (/^(photo|image|figure)/.test(job)) {
+    try { const l = JSON.parse(fs.readFileSync(LIM, "utf8")).codex; if (l && Date.now() < l.until) return { status: 1, stdout: "", stderr: "skipped: codex limit signal today" }; } catch {}
+  }
   const t0 = Date.now();
   const r: any = spawnSync(bin, args, opts);
   try {
     const err = String(r.stderr || "");
+    // 실패한 호출의 표준오류 끝부분만 본다(성공 호출엔 프롬프트 속 "quota" 같은 단어가 찍혀 거짓 신호가 났다, 11-27)
+    const hit = r.status !== 0 && /usage limit|rate limit|quota|hit your limit|limit reached/i.test(err.slice(-1500));
+    if (hit) { // 한도 신호 기록 — 오늘(한국 시각) 자정까지 선택 작업을 쉰다
+      const d = new Date(Date.now() + 9 * 36e5); d.setUTCHours(24, 0, 0, 0);
+      let cur: any = {}; try { cur = JSON.parse(fs.readFileSync(LIM, "utf8")); } catch {}
+      cur.codex = { at: new Date().toISOString(), job, until: d.getTime() - 9 * 36e5 };
+      fs.writeFileSync(LIM, JSON.stringify(cur));
+    }
     const tok = err.match(/tokens used\s*:?\s*([\d,]+)/i)?.[1];
     fs.appendFileSync(path.join(os.homedir(), "Library/Logs/aios-usage.jsonl"), JSON.stringify({
       t: new Date().toISOString(), who: "codex", job: `deuktem:${job}`, sec: Math.round((Date.now() - t0) / 1000),
-      ok: r.status === 0, limit: /usage limit|rate limit|quota/i.test(err), tokens: tok ? Number(tok.replace(/,/g, "")) : null,
+      ok: r.status === 0, limit: hit, tokens: tok ? Number(tok.replace(/,/g, "")) : null,
     }) + "\n");
   } catch {}
   return r;
@@ -51,7 +65,12 @@ function promptOf(params: any): string {
   return sys + body;
 }
 
+function codexLimitedToday(): boolean { // 토큰 C단계: 오늘 Codex 한도 신호가 있으면 Codex를 건너뛰고 Claude가 바로 쓴다
+  try { const l = JSON.parse(fs.readFileSync(path.join(os.homedir(), "Library/Logs/aios-limit.json"), "utf8")).codex; return !!l && Date.now() < l.until; } catch { return false; }
+}
+
 function runCodex(prompt: string, tag: string): string {
+  if (codexLimitedToday()) throw new Error("오늘 Codex 한도 신호가 있어 건너뜀");
   // Desktop 밖 임시 폴더에서 돌린다 (컨트롤타워 절대 규칙 10)
   const work = path.join(os.tmpdir(), "aios-headless", tag);
   fs.mkdirSync(work, { recursive: true });
